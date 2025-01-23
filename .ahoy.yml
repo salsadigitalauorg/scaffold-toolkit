@@ -37,7 +37,7 @@ commands:
         docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir"
         
         # Run the test
-        if docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir"; then
+        if docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir" --use-local-files; then
           echo -e "\033[32m✓ Test passed: $test_name\033[0m"
           test_result=0
         else

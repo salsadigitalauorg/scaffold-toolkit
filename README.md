@@ -9,7 +9,8 @@ A toolkit for scaffolding CI/CD configurations for Drupal projects, supporting b
 - Support for Lagoon and Acquia hosting environments
 - Automated file versioning and metadata tracking
 - Backup creation for existing files
-- Non-interactive mode for automated testing
+- Non-interactive mode for automated installations
+- GitHub integration for file sourcing
 - Comprehensive test suite covering all configuration combinations
 
 ## Installation
@@ -25,18 +26,21 @@ php scaffold-installer.php --latest
 
 ### Command Line Options
 
-- `--latest`: Use the latest version of scaffold files
-- `--version=<tag>`: Use a specific version
+- `--latest`: Use latest version
+- `--version=<tag>`: Use specific version
 - `--force`: Overwrite existing files (creates backups)
-- `--ci=<circleci|github>`: Pre-select CI/CD integration
+- `--ci=<circleci|github>`: Pre-select CI/CD type
 - `--hosting=<lagoon|acquia>`: Pre-select hosting environment
-- `--source-dir=<path>`: Specify source directory for scaffold files
+- `--source-dir=<path>`: Specify source directory for files
 - `--target-dir=<path>`: Specify target directory for installation
 - `--non-interactive`: Run in non-interactive mode (requires --ci and --hosting)
+- `--github-repo`: Specify custom GitHub repository (default: salsadigitalauorg/scaffold-toolkit)
+- `--github-branch`: Specify custom GitHub branch (default: main)
+- `--use-local-files`: Use local files instead of GitHub (for testing)
 
 ### Examples
 
-Interactive installation:
+Interactive installation from GitHub:
 ```bash
 php scaffold-installer.php --latest
 ```
@@ -49,6 +53,11 @@ php scaffold-installer.php --latest --non-interactive --ci=circleci --hosting=la
 Force installation with backups:
 ```bash
 php scaffold-installer.php --latest --force
+```
+
+Custom GitHub source:
+```bash
+php scaffold-installer.php --latest --github-repo="myorg/scaffold-toolkit" --github-branch="develop"
 ```
 
 ## Testing
@@ -83,6 +92,7 @@ ahoy test
 The test suite:
 - Tests all combinations of CI/CD and hosting configurations
 - Performs both normal and force installations
+- Uses local files instead of GitHub for testing
 - Cleans the environment between tests
 - Shows directory contents after each test
 - Provides colored output for pass/fail status
@@ -110,16 +120,20 @@ Running test: Install - circleci with acquia
 
 ```
 .
-├── ci
-│   ├── circleci                  # CircleCI configuration
-│   │   ├── acquia                # Configuration for Acquia and CircleCI
-│   │   └── lagoon                # Configuration for Lagoon and CircleCI
-│   └── gha                       # GitHub Actions configuration
-│       ├── acquia                # Configuration for Acquia and GitHub Actions
-│       └── lagoon                # Configuration for Lagoon and GitHub Actions
-└── renovatebot                   # Renovate configuration
-    └── drupal
-        └── renovate.json         # Renovate configuration for Drupal
+├── ci/
+│   ├── circleci/               # CircleCI configuration
+│   │   ├── acquia/            # Acquia-specific config
+│   │   └── lagoon/            # Lagoon-specific config
+│   └── gha/                   # GitHub Actions
+│       ├── acquia/            # Acquia-specific config
+│       └── lagoon/            # Lagoon-specific config
+├── renovatebot/
+│   └── drupal/                # Drupal-specific Renovate config
+│       └── renovate.json
+├── scaffold-installer.php     # Main installer script
+├── Dockerfile.test           # Testing environment setup
+├── docker-compose.test.yml   # Docker Compose configuration
+└── .ahoy.yml                 # Ahoy commands for testing
 ```
 
 ## File Versioning

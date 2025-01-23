@@ -17,7 +17,8 @@
 
 2. Installation Process
    - Source Directory Handling:
-     - Files are read from a specified source directory (default: '.')
+     - Files are pulled from GitHub by default
+     - Local files used only for testing (with --use-local-files)
      - Target directory for installations can be specified (default: '.')
      - Directory structure is automatically created
    
@@ -26,6 +27,7 @@
      - Automatic backup creation for overwritten files
      - Non-interactive mode for automated installations
      - Proper error handling and reporting
+     - GitHub download error handling
 
 3. Testing Environment
    - Docker-based Testing:
@@ -33,6 +35,7 @@
      - Source code is copied to /source during build
      - Tests run in /workspace directory
      - Each test gets a clean environment
+     - Uses local files instead of GitHub
 
    - Test Matrix:
      - CI/CD Types:
@@ -47,7 +50,7 @@
 
    - Test Process:
      - Clean environment before each test
-     - Run installation
+     - Run installation with --use-local-files
      - Show directory contents
      - Clean up after test
      - Colored output for pass/fail status
@@ -84,6 +87,9 @@
    --source-dir=<path>    Source directory for files
    --target-dir=<path>    Target directory for installation
    --non-interactive      Run without prompts
+   --use-local-files      Use local files instead of GitHub
+   --github-repo          Custom GitHub repository
+   --github-branch        Custom GitHub branch
    ```
 
 6. Testing Commands
@@ -115,6 +121,8 @@
    - Exit codes for test failures
    - Colored output for errors and successes
    - Backup creation before file modifications
+   - GitHub download error handling
+   - cURL error handling for GitHub requests
 
 9. Development Guidelines
    - Keep source files versioned
@@ -122,3 +130,4 @@
    - Clean up test environment between runs
    - Use non-interactive mode for CI/CD
    - Follow Drupal coding standards
+   - Test both GitHub and local file modes

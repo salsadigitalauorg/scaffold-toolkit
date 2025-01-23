@@ -24,6 +24,9 @@ class ScaffoldInstaller {
     private array $fileVersions = [];
     private array $backupFiles = [];
     private array $errors = [];
+    private bool $useLocalFiles = false;
+    private string $githubRepo = 'salsadigitalauorg/scaffold-toolkit';
+    private string $githubBranch = 'main';
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -33,9 +36,18 @@ class ScaffoldInstaller {
         $this->hostingType = $options['hosting'] ?? null;
         $this->sourceDir = $options['source-dir'] ?? '.';
         $this->targetDir = $options['target-dir'] ?? '.';
+        $this->useLocalFiles = isset($options['use-local-files']);
         
         if (isset($options['version'])) {
             $this->version = $options['version'];
+        }
+        
+        if (isset($options['github-repo'])) {
+            $this->githubRepo = $options['github-repo'];
+        }
+        
+        if (isset($options['github-branch'])) {
+            $this->githubBranch = $options['github-branch'];
         }
     }
 
@@ -232,7 +244,6 @@ class ScaffoldInstaller {
      * Process a single file.
      */
     private function processFile(array $file): void {
-        $sourceFile = $this->sourceDir . '/' . $file['source'];
         $targetFile = $this->targetDir . '/' . $file['target'];
         
         echo "Processing {$targetFile}...\n";
@@ -252,17 +263,14 @@ class ScaffoldInstaller {
             }
 
             if ($this->dryRun) {
-                echo "[DRY RUN] Would copy {$sourceFile} to {$targetFile}\n";
+                echo "[DRY RUN] Would copy file to {$targetFile}\n";
                 return;
             }
 
-            if (!file_exists($sourceFile)) {
-                throw new \RuntimeException("Source file not found: {$sourceFile}");
-            }
-
-            $content = file_get_contents($sourceFile);
+            // Get file content either from local source or GitHub
+            $content = $this->getFileContent($file['source']);
             if ($content === false) {
-                throw new \RuntimeException("Failed to read {$sourceFile}");
+                throw new \RuntimeException("Failed to get content for {$file['source']}");
             }
 
             if (file_exists($targetFile) && !$this->force) {
@@ -285,6 +293,48 @@ class ScaffoldInstaller {
                 throw $e;
             }
         }
+    }
+
+    /**
+     * Get file content either from local source or GitHub.
+     */
+    private function getFileContent(string $sourcePath): string|false {
+        if ($this->useLocalFiles) {
+            $localPath = $this->sourceDir . '/' . $sourcePath;
+            if (!file_exists($localPath)) {
+                return false;
+            }
+            return file_get_contents($localPath);
+        }
+
+        // Construct GitHub raw content URL
+        $githubUrl = sprintf(
+            'https://raw.githubusercontent.com/%s/%s/%s',
+            $this->githubRepo,
+            $this->githubBranch,
+            $sourcePath
+        );
+
+        // Initialize cURL
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $githubUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_FAILONERROR, true);
+
+        // Add user agent to avoid GitHub API rate limiting
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+
+        // Execute the request
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($content === false || $httpCode !== 200) {
+            return false;
+        }
+
+        return $content;
     }
 
     /**
@@ -372,7 +422,20 @@ class ScaffoldInstaller {
 }
 
 // Parse command line arguments
-$options = getopt('', ['latest', 'version:', 'dry-run', 'force', 'ci:', 'hosting:', 'source-dir:', 'target-dir:', 'non-interactive']);
+$options = getopt('', [
+    'latest',
+    'version:',
+    'dry-run',
+    'force',
+    'ci:',
+    'hosting:',
+    'source-dir:',
+    'target-dir:',
+    'non-interactive',
+    'use-local-files',
+    'github-repo:',
+    'github-branch:'
+]);
 
 try {
     $installer = new ScaffoldInstaller($options);
