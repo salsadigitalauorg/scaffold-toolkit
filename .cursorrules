@@ -1,0 +1,158 @@
+# Scaffold Installer Script
+
+1. Core Features
+	-	Interactive Prompts:
+	-	Prompt users to select:
+	1.	CI/CD Integration: CircleCI or GitHub Actions.
+	2.	Hosting Environment: Lagoon or Acquia.
+	-	File-specific questions will include:
+	-	Whether to override an existing file based on detected version differences.
+	-	Initial installations will provide contextual prompts if version metadata is missing.
+	-	Versioning Metadata:
+	-	All scaffold files will include metadata such as:
+    ```
+    # Version: 1.0.0
+    # Customized: false
+    ```
+
+	-	The script will:
+  - Use the https://github.com/salsadigitalauorg/scaffold-toolkit repository for downloading the main installation file.
+	-	Compare the metadata of local files against repository versions.
+	-	Detect missing metadata and assume files are unmodified.
+	-	Output pre-update and post-update versioning information.
+
+	-	File Handling:
+	-	Files (e.g., .circleci/config.yml, .github/workflows/*.yml, renovate.json) will be copied to the project root, creating directories if they don’t exist.
+	-	A shared renovate.json file will work for both CircleCI and GitHub Actions.
+	-	Hosting-specific configurations will adjust only artifact deployment logic.
+
+2. Workflow Steps
+
+A. Initialization
+	-	Download the installer:
+
+curl -O https://raw.githubusercontent.com/your-org/scaffold-repo/main/scaffold-installer.php
+php scaffold-installer.php --latest
+
+
+	-	Provide the following options:
+	-	--latest: Fetch and apply the latest scaffold release.
+	-	--version=<tag>: Fetch and apply a specific release.
+	-	--dry-run: Simulate changes and output a report.
+	-	--ci=<circleci|github>: Pre-select CI/CD integration.
+	-	--hosting=<lagoon|acquia>: Pre-select hosting environment.
+
+B. Interactive Prompts
+	-	CI/CD Selection:
+	-	Prompt:
+
+Select CI/CD integration:
+1. CircleCI
+2. GitHub Actions
+
+
+	-	Corresponding Actions:
+	-	Copy .circleci/config.yml or .github/workflows/*.yml into the project root.
+	-	Create missing directories if needed.
+
+	-	Hosting Environment:
+	-	Prompt:
+
+Select hosting environment:
+1. Lagoon
+2. Acquia
+
+
+	-	Corresponding Actions:
+	-	Adjust artifact deployment configurations in the CI/CD file (e.g., Lagoon vs. Acquia-specific logic).
+
+	-	File Handling:
+	-	For each file, output its current state and ask for confirmation:
+
+File: renovate.json
+Current Version: 1.0.0
+Repository Version: 1.1.0
+Customized: false
+Would you like to override this file? [y/n]
+
+
+	-	If metadata is missing, assume the file is unmodified and prompt:
+
+File: renovate.json
+Metadata missing; assuming unmodified.
+Would you like to override this file? [y/n]
+
+C. Dry-Run Mode
+	-	Simulates the entire process without making changes.
+	-	Outputs a plain-text report:
+
+Dry Run Report:
+Files to be updated:
+  - renovate.json (1.0.0 → 1.1.0)
+  - .circleci/config.yml (new file)
+Files skipped:
+  - .env (unchanged)
+
+D. Execution Summary
+	-	At the end of execution, print a summary:
+
+Execution Summary:
+Updated Files:
+  - renovate.json (1.0.0 → 1.1.0)
+  - .github/workflows/main.yml (new file)
+Skipped Files:
+  - .env (unchanged)
+Errors:
+  - Failed to write to .circleci/config.yml: Permission denied
+
+3. Hosting-Specific CI/CD Logic
+	-	Lagoon Configuration:
+	-	Artifact deployment configured to Lagoon.
+	-	Relevant variables (e.g., LAGOON_PROJECT, DREVOPS_DEPLOY_TYPES) included in .env.
+	-	Acquia Configuration:
+	-	Artifact deployment logic updated for Acquia pipelines.
+	-	Variables (e.g., ACQUIA_DB_NAME, ACQUIA_APP_NAME) included in .env.
+	-	The script ensures that all other CI/CD steps (e.g., RenovateBot) remain identical across hosting environments.
+
+4. File Versioning
+	-	Repository files will include version metadata in comments:
+
+# Version: 1.1.0
+# Customized: false
+
+
+	-	Local files missing metadata are assumed unmodified.
+	-	Metadata is updated post-overwrite.
+
+5. GitHub Integration
+	-	Release Management:
+	-	Fetch latest or specific versions from GitHub releases using:
+	-	curl to download the installer script.
+	-	GitHub API to fetch release files.
+	-	Command Example:
+
+php scaffold-installer.php --version=1.2.0
+
+Validation Against Requirements
+	1.	CI/CD Options: Both CircleCI and GitHub Actions are supported, with corresponding files copied and configured based on user choice.
+	2.	Hosting Environments: Lagoon and Acquia are fully supported, with only artifact deployment logic differing.
+	3.	File Metadata and Versioning: Files include metadata for version tracking, with clear prompts for missing or mismatched versions.
+	4.	Interactive Prompts: User choices determine file overwrites and configurations, with detailed output before and after execution.
+	5.	Shared RenovateBot File: renovate.json works across both CI/CD systems, placed in the project root.
+	6.	Dry-Run and Summary: Reports are plain-text, clearly summarizing changes and skipped actions.
+
+## Project Structure
+
+.
+├── ci
+│   ├── circleci                  # CircleCI configuration
+│   │   ├── acquia                # Configuration for Acquia and CircleCI
+│   │   └── lagoon                # Configuration for Lagoon and CircleCI
+│   └── gha
+│       ├── acquia                # Configuration for Acquia and GitHub Actions
+│       └── lagoon                # Configuration for Lagoon and GitHub Actions
+└── renovatebot                   # Renovate configuration for Drupal and GovCMS PAAS
+    ├── drupal
+    │   └── renovate.json         # Renovate configuration for Drupal
+    └── govcms_paas
+        └── renovate.json         # Renovate configuration for GovCMS PAAS

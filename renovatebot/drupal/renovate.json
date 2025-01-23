@@ -1,0 +1,174 @@
+{
+    "extends": [
+        "config:recommended"
+    ],
+    "baseBranches": [
+        "production"
+    ],
+    "branchPrefix": "deps/",
+    "labels": [
+        "dependencies"
+    ],
+    "assignees": [
+        "ivangrynenko"
+    ],
+    "ignorePresets": [
+        ":prHourlyLimit2"
+    ],
+    "timezone": "Australia/Melbourne",
+    "enabledManagers": [
+        "composer",
+        "dockerfile",
+        "docker-compose",
+        "github-actions"
+    ],
+    "dependencyDashboard": true,
+    "semanticCommits": "enabled",
+    "semanticCommitType": "chore",
+    "semanticCommitScope": "deps",
+    "prConcurrentLimit": 10,
+    "prHourlyLimit": 5,
+    "packageRules": [
+        {
+            "groupName": "Major all - skipped to update manually",
+            "matchDatasources": [
+                "packagist"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "matchPackagePatterns": [
+                ".*"
+            ],
+            "excludePackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-dev",
+                "drupal/core-recommended",
+                "drupal/group",
+                "drupal/groupmedia"
+            ],
+            "enabled": false
+        },
+        {
+            "groupName": "Minor and Patch Contrib",
+            "groupSlug": "drupal-minor-patch-contrib",
+            "rebaseWhen": "conflicted",
+            "schedule": ["after 6pm", "before 6am"],
+            "matchDatasources": [
+                "packagist",
+                "git-refs",
+                "git-tags",
+                "github-releases",
+                "github-tags"
+            ],
+            "matchPackagePatterns": [
+                ".*"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "minor"
+            ],
+            "excludePackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev",
+                "drupal/group",
+                "drupal/groupmedia"
+            ],
+            "vulnerabilityAlerts": {
+                "enabled": true,
+                "labels": ["security"],
+                "automerge": true
+            },
+            "enabled": true
+        },
+        {
+            "groupName": "Minor and Patch Core",
+            "groupSlug": "drupal-minor-patch-core",
+            "schedule": ["after 6pm", "before 6am"],
+            "rebaseWhen": "conflicted",
+            "matchDatasources": [
+                "packagist"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "minor"
+            ],
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev"
+            ],
+            "vulnerabilityAlerts": {
+                "enabled": true,
+                "labels": ["security"],
+                "automerge": true
+            },
+            "enabled": true
+        },
+        {
+            "groupName": "Major Core - Disabled",
+            "groupSlug": "drupal-major-core",
+            "matchDatasources": [
+                "packagist"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev"
+            ],
+            "enabled": false
+        },
+        {
+            "groupName": "Theme packages",
+            "groupSlug": "theme-npm",
+            "schedule": ["after 6pm", "before 6am"],
+            "matchDatasources": [
+                "npm"
+            ],
+            "separateMinorPatch": false,
+            "matchPackagePatterns": [
+                ".*"
+            ],
+            "vulnerabilityAlerts": {
+                "enabled": true,
+                "labels": ["security"],
+                "automerge": true
+            },
+            "enabled": true
+        },
+        {
+            "groupName": "Docker images excluded",
+            "matchManagers": [
+                "dockerfile",
+                "docker-compose"
+            ],
+            "matchPackageNames": [
+                "selenium/standalone-chrome",
+                "seleniarm/standalone-chromium"
+            ],
+            "enabled": false
+        },
+        {
+            "groupName": "Docker images",
+            "groupSlug": "docker",
+            "schedule": ["after 6pm", "before 6am"],
+            "matchManagers": [
+                "dockerfile",
+                "docker-compose"
+            ],
+            "excludePackageNames": [
+                "selenium/standalone-chrome",
+                "seleniarm/standalone-chromium"
+            ],
+            "automerge": true
+        }
+    ]
+}

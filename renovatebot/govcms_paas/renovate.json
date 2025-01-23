@@ -1,0 +1,56 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "branchPrefix": "deps/",
+    "baseBranches": ["test"],
+    "labels": ["dependencies"],
+    "assignees": ["ivan.grynenko", "govind.malu"],
+    "rangeStrategy": "replace",
+    "timezone": "Australia/Melbourne",
+    "enabledManagers": ["composer", "dockerfile", "docker-compose", "github-actions"],
+    "dependencyDashboard": true,
+    "dependencyDashboardTitle": "Dependencies Dashboard 📊",
+    "semanticCommits": "enabled",
+    "semanticCommitType": "chore",
+    "semanticCommitScope": "deps",
+    "prConcurrentLimit": 10,
+    "prHourlyLimit": 5,
+    "lockFileMaintenance": {
+        "enabled": true,
+        "schedule": ["before 5am on monday"]
+    },
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": ["security"],
+        "automerge": true
+    },
+    "packageRules": [
+        {
+            "matchPackageNames": ["php"],
+            "enabled": false
+        },
+        {
+            "groupName": "Major all - skipped to update manually",
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["major"],
+            "matchPackagePatterns": [".*"],
+            "enabled": false
+        },
+        {
+            "groupName": "Minor and Patch Updates",
+            "matchUpdateTypes": ["minor", "patch"],
+            "matchPackagePatterns": [".*"],
+            "groupSlug": "all-minor-patch",
+            "automerge": false
+        },
+        {
+            "groupName": "Security Updates",
+            "matchUpdateTypes": ["patch", "minor", "major"],
+            "matchPackagePatterns": [".*"],
+            "matchSecurityUpdates": true,
+            "automerge": true
+        }
+    ]
+}
