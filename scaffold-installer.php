@@ -144,18 +144,29 @@ class ScaffoldInstaller {
                 echo "- {$file}\n";
             }
             
-            if (!$this->force) {
+            if (!$this->force && !$this->nonInteractive) {
+                echo "\nWould you like to overwrite these files? (This will create backups) [y/n] ";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) === 'y') {
+                    $this->force = true;
+                } else {
+                    echo "Installation cancelled.\n";
+                    exit(0);
+                }
+            } else if (!$this->force) {
                 echo "\nUse --force to overwrite existing files.\n";
                 exit(1);
             }
             
             if (!$this->dryRun) {
-                echo "\nWARNING: These files will be backed up and overwritten.\n";
-                echo "Continue? [y/n] ";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) !== 'y') {
-                    echo "Installation cancelled.\n";
-                    exit(0);
+                if (!$this->nonInteractive) {
+                    echo "\nWARNING: These files will be backed up and overwritten.\n";
+                    echo "Continue? [y/n] ";
+                    $answer = trim(fgets(STDIN));
+                    if (strtolower($answer) !== 'y') {
+                        echo "Installation cancelled.\n";
+                        exit(0);
+                    }
                 }
             }
         }
@@ -225,10 +236,15 @@ class ScaffoldInstaller {
                 'target' => '.circleci/config.yml',
             ];
         } else {
-            $files[] = [
-                'source' => "ci/gha/{$this->hostingType}/build-test-deploy.yml",
-                'target' => '.github/workflows/build-test-deploy.yml',
-            ];
+            if ($this->hostingType === 'lagoon') {
+                echo "\nNOTE: GitHub Actions integration for Lagoon is not yet available.\n";
+                echo "Only RenovateBot configuration will be installed.\n\n";
+            } else {
+                $files[] = [
+                    'source' => "ci/gha/{$this->hostingType}/build-test-deploy.yml",
+                    'target' => '.github/workflows/build-test-deploy.yml',
+                ];
+            }
         }
 
         // RenovateBot configuration
@@ -418,8 +434,28 @@ class ScaffoldInstaller {
             echo "Run without --dry-run to apply changes.\n";
         }
 
+        if (empty($this->errors) && !$this->dryRun && !$this->nonInteractive) {
+            $this->askCleanup();
+        }
+
         if (!empty($this->errors)) {
             exit(1);
+        }
+    }
+
+    /**
+     * Ask user if they want to remove the installer file.
+     */
+    private function askCleanup(): void {
+        echo "\nWould you like to remove the installer file (scaffold-installer.php)? [y/n] ";
+        $answer = trim(fgets(STDIN));
+        if (strtolower($answer) === 'y') {
+            $installerFile = __FILE__;
+            if (unlink($installerFile)) {
+                echo "Installer file removed successfully.\n";
+            } else {
+                echo "Failed to remove installer file. You can delete it manually.\n";
+            }
         }
     }
 }

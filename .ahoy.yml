@@ -36,23 +36,45 @@ commands:
         docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
         docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir"
         
-        # Run the test
-        if docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir" --use-local-files; then
+        # Run the test and capture output
+        output=$(docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir" --use-local-files 2>&1)
+        test_exit=$?
+        echo "$output"
+        
+        # Special handling for GHA + Lagoon
+        if [[ "${test_cmd[*]}" == *"--ci=github"* ]] && [[ "${test_cmd[*]}" == *"--hosting=lagoon"* ]]; then
+          if echo "$output" | grep -q "GitHub Actions integration for Lagoon is not yet available"; then
+            echo -e "\033[32m✓ Test passed: Correct message shown for GHA + Lagoon combination\033[0m"
+            test_exit=0
+          else
+            echo -e "\033[31m✗ Test failed: Missing message for GHA + Lagoon combination\033[0m"
+            test_exit=1
+          fi
+        elif [ $test_exit -eq 0 ]; then
           echo -e "\033[32m✓ Test passed: $test_name\033[0m"
-          test_result=0
         else
           echo -e "\033[31m✗ Test failed: $test_name\033[0m"
-          test_result=1
         fi
         
         # Show directory contents after test
         echo -e "\n\033[1mTest directory contents for $test_name:\033[0m"
         docker compose -f docker-compose.test.yml exec -T test ls -la "$test_dir"
         
+        # For GHA + Lagoon, verify only renovate.json is installed
+        if [[ "${test_cmd[*]}" == *"--ci=github"* ]] && [[ "${test_cmd[*]}" == *"--hosting=lagoon"* ]]; then
+          if docker compose -f docker-compose.test.yml exec -T test test -f "$test_dir/renovate.json" && \
+             ! docker compose -f docker-compose.test.yml exec -T test test -d "$test_dir/.github"; then
+            echo -e "\033[32m✓ Test passed: Only RenovateBot config installed for GHA + Lagoon\033[0m"
+          else
+            echo -e "\033[31m✗ Test failed: Incorrect files installed for GHA + Lagoon\033[0m"
+            test_exit=1
+          fi
+        fi
+        
         # Clean up after test
         docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
         
-        return $test_result
+        return $test_exit
       }
 
       # Track overall test status
@@ -62,17 +84,47 @@ commands:
       ci_types=("circleci" "github")
       hosting_types=("lagoon" "acquia")
 
-      # 1. Normal installation tests
+      # 1. Normal installation tests (without force)
       for ci in "${ci_types[@]}"; do
         for hosting in "${hosting_types[@]}"; do
           run_test "Install - $ci with $hosting" "/workspace/install/$ci-$hosting" --latest --ci="$ci" --hosting="$hosting" || test_status=1
         done
       done
 
-      # 2. Force installation tests
+      # 2. Installation with existing files (should fail without force)
       for ci in "${ci_types[@]}"; do
         for hosting in "${hosting_types[@]}"; do
-          run_test "Force install - $ci with $hosting" "/workspace/force/$ci-$hosting" --latest --force --ci="$ci" --hosting="$hosting" || test_status=1
+          test_dir="/workspace/force-test/$ci-$hosting"
+          # First create some files
+          docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir/.circleci"
+          docker compose -f docker-compose.test.yml exec -T test touch "$test_dir/.circleci/config.yml"
+          # Then try to install without force (should fail)
+          if ! run_test "Install without force - $ci with $hosting (should fail)" "$test_dir" --latest --ci="$ci" --hosting="$hosting"; then
+            if [[ "$ci" == "github" ]] && [[ "$hosting" == "lagoon" ]]; then
+              echo -e "\033[32m✓ Test passed: GHA + Lagoon shows correct message\033[0m"
+            else
+              echo -e "\033[32m✓ Test passed: Failed as expected when files exist without force option\033[0m"
+            fi
+          else
+            if [[ "$ci" == "github" ]] && [[ "$hosting" == "lagoon" ]]; then
+              echo -e "\033[31m✗ Test failed: GHA + Lagoon should show message\033[0m"
+            else
+              echo -e "\033[31m✗ Test failed: Should have failed when files exist without force option\033[0m"
+            fi
+            test_status=1
+          fi
+        done
+      done
+
+      # 3. Force installation tests (should succeed)
+      for ci in "${ci_types[@]}"; do
+        for hosting in "${hosting_types[@]}"; do
+          test_dir="/workspace/force/$ci-$hosting"
+          # First create some files
+          docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir/.circleci"
+          docker compose -f docker-compose.test.yml exec -T test touch "$test_dir/.circleci/config.yml"
+          # Then install with force (should succeed)
+          run_test "Force install - $ci with $hosting" "$test_dir" --latest --force --ci="$ci" --hosting="$hosting" || test_status=1
         done
       done
 
