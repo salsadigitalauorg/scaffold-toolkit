@@ -72,6 +72,7 @@ jobs:
         VORTEX_DB_DOWNLOAD_ENVIRONMENT: ${{ secrets.VORTEX_DB_DOWNLOAD_ENVIRONMENT }}
         VORTEX_DB_DOWNLOAD_ACQUIA_DB_NAME: ${{ secrets.VORTEX_DB_DOWNLOAD_ACQUIA_DB_NAME }}
         VORTEX_DB_DOWNLOAD_SOURCE: "acquia"
+        RENOVATEBOT_REPOSITORY: ${{ github.repository }}
         # How often to refresh the cache of the DB dump. Refer to `date` command.
         VORTEX_CI_DB_CACHE_TIMESTAMP: +%Y%m%d
         # Use previous database caches on this branch as a fallback if the above cache

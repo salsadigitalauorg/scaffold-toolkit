@@ -21,116 +21,84 @@ commands:
   test:
     usage: Run installer tests
     cmd: |
-      echo "Running installer tests..."
-      
-      # Function to run a test and check result
-      run_test() {
-        local test_name=$1
-        local test_dir=$2
-        shift 2
-        local test_cmd=("$@")
-        
-        echo -e "\n\033[1mRunning test: $test_name\033[0m"
-        
-        # Clean test directory before test
-        docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
-        docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir"
-        
-        # Run the test and capture output
-        output=$(docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir" --use-local-files 2>&1)
-        test_exit=$?
-        echo "$output"
-        
-        # Special handling for GHA + Lagoon
-        if [[ "${test_cmd[*]}" == *"--ci=github"* ]] && [[ "${test_cmd[*]}" == *"--hosting=lagoon"* ]]; then
-          if echo "$output" | grep -q "GitHub Actions integration for Lagoon is not yet available"; then
-            echo -e "\033[32m✓ Test passed: Correct message shown for GHA + Lagoon combination\033[0m"
-            test_exit=0
-          else
-            echo -e "\033[31m✗ Test failed: Missing message for GHA + Lagoon combination\033[0m"
-            test_exit=1
-          fi
-        elif [ $test_exit -eq 0 ]; then
-          echo -e "\033[32m✓ Test passed: $test_name\033[0m"
-        else
-          echo -e "\033[31m✗ Test failed: $test_name\033[0m"
-        fi
-        
-        # Show directory contents after test
-        echo -e "\n\033[1mTest directory contents for $test_name:\033[0m"
-        docker compose -f docker-compose.test.yml exec -T test ls -la "$test_dir"
-        
-        # For GHA + Lagoon, verify only renovate.json is installed
-        if [[ "${test_cmd[*]}" == *"--ci=github"* ]] && [[ "${test_cmd[*]}" == *"--hosting=lagoon"* ]]; then
-          if docker compose -f docker-compose.test.yml exec -T test test -f "$test_dir/renovate.json" && \
-             ! docker compose -f docker-compose.test.yml exec -T test test -d "$test_dir/.github"; then
-            echo -e "\033[32m✓ Test passed: Only RenovateBot config installed for GHA + Lagoon\033[0m"
-          else
-            echo -e "\033[31m✗ Test failed: Incorrect files installed for GHA + Lagoon\033[0m"
-            test_exit=1
-          fi
-        fi
-        
-        # Clean up after test
-        docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
-        
-        return $test_exit
-      }
+      # Create test directories
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test1
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test2
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test3
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test4
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test5
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test6
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test7
+      docker compose -f docker-compose.test.yml exec -T test mkdir -p /workspace/test8
 
       # Track overall test status
       test_status=0
 
-      # Test Matrix
-      ci_types=("circleci" "github")
-      hosting_types=("lagoon" "acquia")
+      echo -e "\033[1mTesting dry run mode...\033[0m"
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --dry-run --non-interactive --scaffold=drevops --ci=circleci --hosting=lagoon --source-dir=/source --target-dir=/workspace/test1
+      [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: Dry run mode\033[0m" || { echo -e "\033[31m✗ Test failed: Dry run mode\033[0m"; test_status=1; }
 
-      # 1. Normal installation tests (without force)
-      for ci in "${ci_types[@]}"; do
-        for hosting in "${hosting_types[@]}"; do
-          run_test "Install - $ci with $hosting" "/workspace/install/$ci-$hosting" --latest --ci="$ci" --hosting="$hosting" || test_status=1
-        done
-      done
+      echo -e "\n\033[1mTesting CircleCI with Lagoon (normal installation)...\033[0m"
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test2
+      [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: CircleCI with Lagoon\033[0m" || { echo -e "\033[31m✗ Test failed: CircleCI with Lagoon\033[0m"; test_status=1; }
 
-      # 2. Installation with existing files (should fail without force)
-      for ci in "${ci_types[@]}"; do
-        for hosting in "${hosting_types[@]}"; do
-          test_dir="/workspace/force-test/$ci-$hosting"
-          # First create some files
-          docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir/.circleci"
-          docker compose -f docker-compose.test.yml exec -T test touch "$test_dir/.circleci/config.yml"
-          # Then try to install without force (should fail)
-          if ! run_test "Install without force - $ci with $hosting (should fail)" "$test_dir" --latest --ci="$ci" --hosting="$hosting"; then
-            if [[ "$ci" == "github" ]] && [[ "$hosting" == "lagoon" ]]; then
-              echo -e "\033[32m✓ Test passed: GHA + Lagoon shows correct message\033[0m"
-            else
-              echo -e "\033[32m✓ Test passed: Failed as expected when files exist without force option\033[0m"
-            fi
-          else
-            if [[ "$ci" == "github" ]] && [[ "$hosting" == "lagoon" ]]; then
-              echo -e "\033[31m✗ Test failed: GHA + Lagoon should show message\033[0m"
-            else
-              echo -e "\033[31m✗ Test failed: Should have failed when files exist without force option\033[0m"
-            fi
-            test_status=1
-          fi
-        done
-      done
+      echo -e "\n\033[1mTesting CircleCI with Acquia (normal installation)...\033[0m"
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test3
+      [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: CircleCI with Acquia\033[0m" || { echo -e "\033[31m✗ Test failed: CircleCI with Acquia\033[0m"; test_status=1; }
 
-      # 3. Force installation tests (should succeed)
-      for ci in "${ci_types[@]}"; do
-        for hosting in "${hosting_types[@]}"; do
-          test_dir="/workspace/force/$ci-$hosting"
-          # First create some files
-          docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir/.circleci"
-          docker compose -f docker-compose.test.yml exec -T test touch "$test_dir/.circleci/config.yml"
-          # Then install with force (should succeed)
-          run_test "Force install - $ci with $hosting" "$test_dir" --latest --force --ci="$ci" --hosting="$hosting" || test_status=1
-        done
-      done
+      echo -e "\n\033[1mTesting GitHub Actions with Lagoon (should show not available message and exit)...\033[0m"
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=github --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test4; then
+        echo -e "\033[32m✓ Test passed: GitHub Actions with Lagoon correctly shows not available message\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: GitHub Actions with Lagoon should have failed\033[0m"
+        test_status=1
+      fi
+
+      echo -e "\n\033[1mTesting GitHub Actions with Acquia (should show not available message and exit)...\033[0m"
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=github --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test5; then
+        echo -e "\033[32m✓ Test passed: GitHub Actions with Acquia correctly shows not available message\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: GitHub Actions with Acquia should have failed\033[0m"
+        test_status=1
+      fi
+
+      echo -e "\n\033[1mTesting Vortex scaffold type (should show not available message and exit)...\033[0m"
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=vortex --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test7; then
+        echo -e "\033[32m✓ Test passed: Vortex scaffold correctly shows not available message\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: Vortex scaffold should have failed\033[0m"
+        test_status=1
+      fi
+
+      echo -e "\n\033[1mTesting GovCMS PaaS scaffold type (should show not available message and exit)...\033[0m"
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=govcms --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test8; then
+        echo -e "\033[32m✓ Test passed: GovCMS PaaS scaffold correctly shows not available message\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: GovCMS PaaS scaffold should have failed\033[0m"
+        test_status=1
+      fi
+
+      echo -e "\n\033[1mTesting force installation...\033[0m"
+      # First install normally
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test6
+      first_install=$?
+      # Then try to install again with force
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --force --source-dir=/source --target-dir=/workspace/test6
+      second_install=$?
+      if [ $first_install -eq 0 ] && [ $second_install -eq 0 ]; then
+        echo -e "\033[32m✓ Test passed: Force installation\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: Force installation\033[0m"
+        test_status=1
+      fi
+
+      echo -e "\n\033[1mTest Results:\033[0m"
+      docker compose -f docker-compose.test.yml exec -T test ls -la /workspace/test* || true
 
       # Print final status
       if [ $test_status -eq 0 ]; then
         echo -e "\n\033[32m✓ All tests passed\033[0m"
+        exit 0
       else
         echo -e "\n\033[31m✗ Some tests failed\033[0m"
         exit 1

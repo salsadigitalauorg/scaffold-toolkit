@@ -25,7 +25,7 @@ aliases:
 
   # Make sure that correct repository is specified or bot will go
   # through all repositories that a RENOVATE_TOKEN token has access to.
-  - &renovatebot_repository '[SCAFFOLD_TOOLKIT_REPOSITORY]'
+  - &renovatebot_repository '${CIRCLE_PROJECT_REPONAME}'
   # The author details to use for commits made by RenovateBot.
   - &renovatebot_git_author 'Deployer robot <deployer@salsa.digital>'
   # The schedule to run RenovateBot on. Defaults to running twice a day.

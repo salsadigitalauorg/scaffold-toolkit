@@ -3,8 +3,16 @@
 1. Core Features
 	-	Interactive Prompts:
 	-	Prompt users to select:
-	1.	CI/CD Integration: CircleCI or GitHub Actions.
-	2.	Hosting Environment: Lagoon or Acquia.
+	1.	Scaffold Type:
+		- DrevOps (available)
+		- Vortex (coming soon)
+		- GovCMS PaaS (coming soon)
+	2.	CI/CD Integration:
+		- CircleCI (available)
+		- GitHub Actions (coming soon)
+	3.	Hosting Environment:
+		- Lagoon
+		- Acquia
 	-	File-specific questions will include:
 	-	Whether to override an existing file based on detected version differences.
 	-	Initial installations will provide contextual prompts if version metadata is missing.
@@ -38,9 +46,13 @@
      - Uses local files instead of GitHub
 
    - Test Matrix:
+     - Scaffold Types:
+       - DrevOps (available)
+       - Vortex (coming soon)
+       - GovCMS PaaS (coming soon)
      - CI/CD Types:
-       - CircleCI
-       - GitHub Actions
+       - CircleCI (available)
+       - GitHub Actions (coming soon)
      - Hosting Types:
        - Lagoon
        - Acquia
@@ -62,7 +74,7 @@
    │   ├── circleci/               # CircleCI configuration
    │   │   ├── acquia/            # Acquia-specific config
    │   │   └── lagoon/            # Lagoon-specific config
-   │   └── gha/                   # GitHub Actions
+   │   └── gha/                   # GitHub Actions (coming soon)
    │       ├── acquia/            # Acquia-specific config
    │       └── lagoon/            # Lagoon-specific config
    ├── renovatebot/
@@ -79,17 +91,18 @@
    php scaffold-installer.php [options]
    
    Options:
-   --latest                Use latest version
-   --version=<tag>         Use specific version
-   --force                 Overwrite existing files
-   --ci=<type>            Select CI/CD type (circleci|github)
-   --hosting=<type>       Select hosting (lagoon|acquia)
-   --source-dir=<path>    Source directory for files
-   --target-dir=<path>    Target directory for installation
-   --non-interactive      Run without prompts
-   --use-local-files      Use local files instead of GitHub
-   --github-repo          Custom GitHub repository
-   --github-branch        Custom GitHub branch
+   --scaffold=<type>      Select scaffold type (drevops|vortex|govcms)
+   --latest              Use latest version
+   --version=<tag>       Use specific version
+   --force               Overwrite existing files
+   --ci=<type>          Select CI/CD type (circleci|github)
+   --hosting=<type>     Select hosting (lagoon|acquia)
+   --source-dir=<path>  Source directory for files
+   --target-dir=<path>  Target directory for installation
+   --non-interactive    Run without prompts
+   --use-local-files    Use local files instead of GitHub
+   --github-repo        Custom GitHub repository
+   --github-branch      Custom GitHub branch
    ```
 
 6. Testing Commands
@@ -106,10 +119,10 @@
 
 7. Test Output Format
    ```
-   Running test: Install - circleci with lagoon
-   ✓ Test passed: Install - circleci with lagoon
+   Running test: Install - drevops with circleci and lagoon
+   ✓ Test passed: Install - drevops with circleci and lagoon
 
-   Test directory contents for Install - circleci with lagoon:
+   Test directory contents for Install - drevops with circleci and lagoon:
    .circleci/
    └── config.yml
    renovate.json

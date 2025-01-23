@@ -27,6 +27,7 @@ class ScaffoldInstaller {
     private bool $useLocalFiles = false;
     private string $githubRepo = 'salsadigitalauorg/scaffold-toolkit';
     private string $githubBranch = 'main';
+    private ?string $scaffoldType = null;
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -37,6 +38,7 @@ class ScaffoldInstaller {
         $this->sourceDir = $options['source-dir'] ?? '.';
         $this->targetDir = $options['target-dir'] ?? '.';
         $this->useLocalFiles = isset($options['use-local-files']);
+        $this->scaffoldType = $options['scaffold'] ?? null;
         
         if (isset($options['version'])) {
             $this->version = $options['version'];
@@ -57,6 +59,7 @@ class ScaffoldInstaller {
     public function run(): void {
         $this->printHeader();
         $this->validateEnvironment();
+        $this->selectScaffoldType();
         $this->selectCiType();
         $this->selectHostingType();
         
@@ -94,6 +97,40 @@ class ScaffoldInstaller {
     }
 
     /**
+     * Select the scaffold type.
+     */
+    private function selectScaffoldType(): void {
+        if ($this->scaffoldType === null) {
+            if ($this->nonInteractive) {
+                throw new \RuntimeException('Scaffold type must be specified in non-interactive mode');
+            }
+            echo "Select scaffold type:\n";
+            echo "1. DrevOps\n";
+            echo "2. Vortex (coming soon)\n";
+            echo "3. GovCMS PaaS (coming soon)\n";
+            $choice = trim(fgets(STDIN));
+            
+            switch ($choice) {
+                case '1':
+                    $this->scaffoldType = 'drevops';
+                    break;
+                case '2':
+                    echo "\nNOTE: Vortex scaffolding is not yet available.\n";
+                    exit(1);
+                case '3':
+                    echo "\nNOTE: GovCMS PaaS scaffolding is not yet available.\n";
+                    exit(1);
+                default:
+                    $this->scaffoldType = 'drevops';
+            }
+        } elseif ($this->scaffoldType !== 'drevops') {
+            echo "\nNOTE: Only DrevOps scaffolding is currently available.\n";
+            echo "Specified scaffold type '{$this->scaffoldType}' is not yet supported.\n";
+            exit(1);
+        }
+    }
+
+    /**
      * Select the CI/CD type.
      */
     private function selectCiType(): void {
@@ -103,9 +140,27 @@ class ScaffoldInstaller {
             }
             echo "Select CI/CD integration:\n";
             echo "1. CircleCI\n";
-            echo "2. GitHub Actions\n";
+            echo "2. GitHub Actions (Coming soon)\n";
             $choice = trim(fgets(STDIN));
-            $this->ciType = $choice === '1' ? 'circleci' : 'github';
+            
+            if ($choice === '2') {
+                echo "\nNOTE: GitHub Actions integration is not yet available.\n";
+                echo "Only CircleCI is currently supported.\n\n";
+                echo "Would you like to proceed with CircleCI instead? [y/n] ";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) === 'y') {
+                    $this->ciType = 'circleci';
+                } else {
+                    echo "Installation cancelled.\n";
+                    exit(1);
+                }
+            } else {
+                $this->ciType = 'circleci';
+            }
+        } elseif ($this->ciType === 'github') {
+            echo "\nNOTE: GitHub Actions integration is not yet available.\n";
+            echo "Only CircleCI is currently supported.\n";
+            exit(1);
         }
     }
 
@@ -144,29 +199,29 @@ class ScaffoldInstaller {
                 echo "- {$file}\n";
             }
             
-            if (!$this->force && !$this->nonInteractive) {
+            if (!$this->force) {
+                if ($this->nonInteractive) {
+                    echo "\nError: Files exist and --force option was not used.\n";
+                    exit(1);
+                }
+                
                 echo "\nWould you like to overwrite these files? (This will create backups) [y/n] ";
                 $answer = trim(fgets(STDIN));
                 if (strtolower($answer) === 'y') {
                     $this->force = true;
                 } else {
                     echo "Installation cancelled.\n";
-                    exit(0);
+                    exit(1);
                 }
-            } else if (!$this->force) {
-                echo "\nUse --force to overwrite existing files.\n";
-                exit(1);
             }
             
-            if (!$this->dryRun) {
-                if (!$this->nonInteractive) {
-                    echo "\nWARNING: These files will be backed up and overwritten.\n";
-                    echo "Continue? [y/n] ";
-                    $answer = trim(fgets(STDIN));
-                    if (strtolower($answer) !== 'y') {
-                        echo "Installation cancelled.\n";
-                        exit(0);
-                    }
+            if (!$this->dryRun && !$this->nonInteractive) {
+                echo "\nWARNING: These files will be backed up and overwritten.\n";
+                echo "Continue? [y/n] ";
+                $answer = trim(fgets(STDIN));
+                if (strtolower($answer) !== 'y') {
+                    echo "Installation cancelled.\n";
+                    exit(1);
                 }
             }
         }
@@ -193,21 +248,28 @@ class ScaffoldInstaller {
      * Ensure required directories exist.
      */
     private function ensureDirectoriesExist(): void {
-        $directories = [
-            '.circleci',
-            '.github/workflows',
-            'renovatebot',
-        ];
+        $directories = [];
+        
+        // Only create CI/CD directories if needed
+        if ($this->ciType === 'circleci') {
+            $directories[] = '.circleci';
+        } else if ($this->ciType === 'github' && $this->hostingType !== 'lagoon') {
+            $directories[] = '.github/workflows';
+        }
+        
+        // Always create renovatebot directory
+        $directories[] = 'renovatebot';
 
         foreach ($directories as $dir) {
-            if (!is_dir($dir)) {
+            $targetDir = $this->targetDir . '/' . $dir;
+            if (!is_dir($targetDir)) {
                 if ($this->dryRun) {
-                    echo "[DRY RUN] Would create directory: {$dir}\n";
+                    echo "[DRY RUN] Would create directory: {$targetDir}\n";
                 } else {
-                    if (!mkdir($dir, 0755, true)) {
-                        throw new \RuntimeException("Failed to create directory: {$dir}");
+                    if (!mkdir($targetDir, 0755, true)) {
+                        throw new \RuntimeException("Failed to create directory: {$targetDir}");
                     }
-                    echo "Created directory: {$dir}\n";
+                    echo "Created directory: {$targetDir}\n";
                 }
             }
         }
@@ -235,19 +297,9 @@ class ScaffoldInstaller {
                 'source' => "ci/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
-        } else {
-            if ($this->hostingType === 'lagoon') {
-                echo "\nNOTE: GitHub Actions integration for Lagoon is not yet available.\n";
-                echo "Only RenovateBot configuration will be installed.\n\n";
-            } else {
-                $files[] = [
-                    'source' => "ci/gha/{$this->hostingType}/build-test-deploy.yml",
-                    'target' => '.github/workflows/build-test-deploy.yml',
-                ];
-            }
         }
 
-        // RenovateBot configuration
+        // RenovateBot configuration is always installed
         $files[] = [
             'source' => 'renovatebot/drupal/renovate.json',
             'target' => 'renovate.json',
@@ -289,6 +341,9 @@ class ScaffoldInstaller {
                 throw new \RuntimeException("Failed to get content for {$file['source']}");
             }
 
+            // Replace repository placeholder with CI-specific variable
+            $content = $this->replaceRepositoryPlaceholder($content);
+
             if (file_exists($targetFile) && !$this->force) {
                 $currentVersion = $this->getFileVersion($targetFile);
                 $newVersion = $this->getVersionFromContent($content);
@@ -309,6 +364,23 @@ class ScaffoldInstaller {
                 throw $e;
             }
         }
+    }
+
+    /**
+     * Replace repository placeholder with CI-specific variable.
+     */
+    private function replaceRepositoryPlaceholder(string $content): string {
+        $placeholder = '[SCAFFOLD_TOOLKIT_REPOSITORY]';
+        
+        if ($this->ciType === 'circleci') {
+            // CircleCI uses ${CIRCLE_PROJECT_REPONAME}
+            $replacement = '${CIRCLE_PROJECT_REPONAME}';
+        } else {
+            // GitHub Actions uses ${{ github.repository }}
+            $replacement = '${{ github.repository }}';
+        }
+        
+        return str_replace($placeholder, $replacement, $content);
     }
 
     /**
@@ -411,6 +483,7 @@ class ScaffoldInstaller {
     private function printSummary(): void {
         echo "\nInstallation Summary\n";
         echo "===================\n";
+        echo "Scaffold Type: " . ucfirst($this->scaffoldType) . "\n";
         echo "CI/CD Type: " . ucfirst($this->ciType) . "\n";
         echo "Hosting: " . ucfirst($this->hostingType) . "\n";
         echo "Mode: " . ($this->dryRun ? 'Dry Run' : 'Live') . "\n";
@@ -473,7 +546,8 @@ $options = getopt('', [
     'non-interactive',
     'use-local-files',
     'github-repo:',
-    'github-branch:'
+    'github-branch:',
+    'scaffold:'
 ]);
 
 try {
