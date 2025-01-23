@@ -309,7 +309,7 @@ class ScaffoldInstaller {
 
         // Construct GitHub raw content URL
         $githubUrl = sprintf(
-            'https://raw.githubusercontent.com/%s/%s/%s',
+            'https://raw.githubusercontent.com/%s/refs/heads/%s/%s',
             $this->githubRepo,
             $this->githubBranch,
             $sourcePath
@@ -328,11 +328,14 @@ class ScaffoldInstaller {
         // Execute the request
         $content = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($content === false || $httpCode !== 200) {
-            return false;
+        
+        if ($content === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \RuntimeException("Failed to download file from GitHub: $error (HTTP $httpCode)");
         }
+        
+        curl_close($ch);
 
         return $content;
     }
