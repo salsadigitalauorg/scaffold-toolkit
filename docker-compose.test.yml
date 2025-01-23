@@ -6,6 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile.test
     volumes:
-      - .:/app:delegated
+      # Mount source code as read-only
+      - .:/source:ro
+      # Mount a named volume for test outputs
+      - scaffold_test_workspace:/workspace
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+
+volumes:
+  scaffold_test_workspace:
