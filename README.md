@@ -56,6 +56,31 @@ php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon
 - `--github-repo=<repo>`: Custom GitHub repository
 - `--github-branch=<branch>`: Custom GitHub branch
 
+### CircleCI Environment Variables
+
+#### Required Variables
+Set these variables in your CircleCI project settings:
+
+- `SCAFFOLD_TOOLKIT_SSH_FINGERPRINT`: SSH key fingerprint for deployment
+- `CIRCLE_PROJECT_REPONAME`: Your repository name (automatically set by CircleCI)
+- `SCAFFOLD_TOOLKIT_CACHE_TAG`: Cache tag for build caching
+- `DOCKER_PASS`: Docker Hub password for image pulls
+- `RENOVATE_TOKEN`: Token for RenovateBot operations
+
+#### Optional Variables for Build Flexibility
+These variables can be set to allow builds to pass while fixing code issues:
+
+```bash
+# Set to 1 to ignore failures for specific checks
+DREVOPS_CI_HADOLINT_IGNORE_FAILURE=1    # Docker linting
+DREVOPS_CI_PHPCS_IGNORE_FAILURE=1       # PHP CodeSniffer
+DREVOPS_CI_PHPSTAN_IGNORE_FAILURE=1     # PHPStan
+DREVOPS_CI_RECTOR_IGNORE_FAILURE=1      # Rector
+DREVOPS_CI_PHPMD_IGNORE_FAILURE=1       # PHP Mess Detector
+DREVOPS_CI_TWIGCS_IGNORE_FAILURE=1      # Twig CodeSniffer
+DREVOPS_CI_NPM_LINT_IGNORE_FAILURE=1    # NPM linting
+```
+
 ### Safety Features
 
 - **Dry Run Mode**: Use `--dry-run` to simulate changes without modifying files
