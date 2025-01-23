@@ -28,6 +28,7 @@ class ScaffoldInstaller {
     private string $githubRepo = 'salsadigitalauorg/scaffold-toolkit';
     private string $githubBranch = 'main';
     private ?string $scaffoldType = null;
+    private ?string $sshFingerprint = null;
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -39,6 +40,7 @@ class ScaffoldInstaller {
         $this->targetDir = $options['target-dir'] ?? '.';
         $this->useLocalFiles = isset($options['use-local-files']);
         $this->scaffoldType = $options['scaffold'] ?? null;
+        $this->sshFingerprint = $options['ssh-fingerprint'] ?? null;
         
         if (isset($options['version'])) {
             $this->version = $options['version'];
@@ -62,6 +64,10 @@ class ScaffoldInstaller {
         $this->selectScaffoldType();
         $this->selectCiType();
         $this->selectHostingType();
+        
+        if ($this->ciType === 'circleci' && !$this->sshFingerprint) {
+            $this->sshFingerprint = $this->promptSshFingerprint();
+        }
         
         // Validate existing files before making any changes
         $this->validateExistingFiles();
@@ -531,6 +537,27 @@ class ScaffoldInstaller {
             }
         }
     }
+
+    private function promptSshFingerprint(): string {
+        if ($this->nonInteractive) {
+            throw new \Exception('SSH fingerprint is required for CircleCI in non-interactive mode. Use --ssh-fingerprint option.');
+        }
+
+        echo "CircleCI requires an SSH key fingerprint for deployment.\n";
+        echo "Please follow these steps to set up your SSH key:\n";
+        echo "1. Go to CircleCI project settings\n";
+        echo "2. Navigate to SSH Keys section\n";
+        echo "3. Add a new SSH key or use an existing one\n";
+        echo "4. Copy the fingerprint (MD5 format)\n\n";
+        
+        $fingerprint = readline("Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ");
+        
+        if (!preg_match('/^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$/', $fingerprint)) {
+            throw new \Exception('Invalid SSH key fingerprint format. It should be in MD5 format (16 pairs of hexadecimal digits separated by colons).');
+        }
+
+        return $fingerprint;
+    }
 }
 
 // Parse command line arguments
@@ -547,7 +574,8 @@ $options = getopt('', [
     'use-local-files',
     'github-repo:',
     'github-branch:',
-    'scaffold:'
+    'scaffold:',
+    'ssh-fingerprint:'
 ]);
 
 try {

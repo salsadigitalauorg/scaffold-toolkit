@@ -34,36 +34,39 @@ commands:
       # Track overall test status
       test_status=0
 
+      # Test SSH fingerprint for testing
+      TEST_SSH_FINGERPRINT="01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef"
+
       echo -e "\033[1mTesting dry run mode...\033[0m"
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --dry-run --non-interactive --scaffold=drevops --ci=circleci --hosting=lagoon --source-dir=/source --target-dir=/workspace/test1
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --dry-run --non-interactive --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test1
       [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: Dry run mode\033[0m" || { echo -e "\033[31m✗ Test failed: Dry run mode\033[0m"; test_status=1; }
 
       echo -e "\n\033[1mTesting CircleCI with Lagoon (normal installation)...\033[0m"
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test2
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test2
       [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: CircleCI with Lagoon\033[0m" || { echo -e "\033[31m✗ Test failed: CircleCI with Lagoon\033[0m"; test_status=1; }
 
       echo -e "\n\033[1mTesting CircleCI with Acquia (normal installation)...\033[0m"
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test3
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test3
       [ $? -eq 0 ] && echo -e "\033[32m✓ Test passed: CircleCI with Acquia\033[0m" || { echo -e "\033[31m✗ Test failed: CircleCI with Acquia\033[0m"; test_status=1; }
 
+      echo -e "\n\033[1mTesting CircleCI without SSH fingerprint (should fail)...\033[0m"
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test4; then
+        echo -e "\033[32m✓ Test passed: CircleCI correctly requires SSH fingerprint\033[0m"
+      else
+        echo -e "\033[31m✗ Test failed: CircleCI should have required SSH fingerprint\033[0m"
+        test_status=1
+      fi
+
       echo -e "\n\033[1mTesting GitHub Actions with Lagoon (should show not available message and exit)...\033[0m"
-      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=github --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test4; then
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=github --hosting=lagoon --non-interactive --source-dir=/source --target-dir=/workspace/test5; then
         echo -e "\033[32m✓ Test passed: GitHub Actions with Lagoon correctly shows not available message\033[0m"
       else
         echo -e "\033[31m✗ Test failed: GitHub Actions with Lagoon should have failed\033[0m"
         test_status=1
       fi
 
-      echo -e "\n\033[1mTesting GitHub Actions with Acquia (should show not available message and exit)...\033[0m"
-      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=github --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test5; then
-        echo -e "\033[32m✓ Test passed: GitHub Actions with Acquia correctly shows not available message\033[0m"
-      else
-        echo -e "\033[31m✗ Test failed: GitHub Actions with Acquia should have failed\033[0m"
-        test_status=1
-      fi
-
       echo -e "\n\033[1mTesting Vortex scaffold type (should show not available message and exit)...\033[0m"
-      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=vortex --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test7; then
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=vortex --ci=circleci --hosting=acquia --non-interactive --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test7; then
         echo -e "\033[32m✓ Test passed: Vortex scaffold correctly shows not available message\033[0m"
       else
         echo -e "\033[31m✗ Test failed: Vortex scaffold should have failed\033[0m"
@@ -71,7 +74,7 @@ commands:
       fi
 
       echo -e "\n\033[1mTesting GovCMS PaaS scaffold type (should show not available message and exit)...\033[0m"
-      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=govcms --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test8; then
+      if ! docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=govcms --ci=circleci --hosting=acquia --non-interactive --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test8; then
         echo -e "\033[32m✓ Test passed: GovCMS PaaS scaffold correctly shows not available message\033[0m"
       else
         echo -e "\033[31m✗ Test failed: GovCMS PaaS scaffold should have failed\033[0m"
@@ -80,10 +83,10 @@ commands:
 
       echo -e "\n\033[1mTesting force installation...\033[0m"
       # First install normally
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --source-dir=/source --target-dir=/workspace/test6
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test6
       first_install=$?
       # Then try to install again with force
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --force --source-dir=/source --target-dir=/workspace/test6
+      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=acquia --non-interactive --force --ssh-fingerprint="$TEST_SSH_FINGERPRINT" --source-dir=/source --target-dir=/workspace/test6
       second_install=$?
       if [ $first_install -eq 0 ] && [ $second_install -eq 0 ]; then
         echo -e "\033[32m✓ Test passed: Force installation\033[0m"

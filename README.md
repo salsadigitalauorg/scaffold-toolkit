@@ -36,16 +36,23 @@ Run the installer without options to use interactive mode:
 php scaffold-installer.php
 ```
 
+The installer will prompt you for:
+1. Scaffold type selection
+2. CI/CD integration selection
+3. Hosting environment selection
+4. SSH key fingerprint (for CircleCI)
+
 ### Non-Interactive Mode
 Specify all required options for automated installation:
 ```bash
-php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon
+php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef"
 ```
 
 ### Options
 - `--scaffold=<type>`: Scaffold type (drevops, vortex, govcms)
 - `--ci=<type>`: CI/CD type (circleci, github)
 - `--hosting=<type>`: Hosting environment (lagoon, acquia)
+- `--ssh-fingerprint=<fingerprint>`: SSH key fingerprint for CircleCI (required for CircleCI)
 - `--latest`: Use latest version
 - `--version=<tag>`: Use specific version
 - `--dry-run`: Show what would be changed without making changes
@@ -61,11 +68,12 @@ php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon
 #### Required Variables
 Set these variables in your CircleCI project settings:
 
-- `SCAFFOLD_TOOLKIT_SSH_FINGERPRINT`: SSH key fingerprint for deployment
 - `CIRCLE_PROJECT_REPONAME`: Your repository name (automatically set by CircleCI)
 - `SCAFFOLD_TOOLKIT_CACHE_TAG`: Cache tag for build caching
 - `DOCKER_PASS`: Docker Hub password for image pulls
 - `RENOVATE_TOKEN`: Token for RenovateBot operations
+
+Note: The SSH key fingerprint is now handled through the installer's interactive prompt or the `--ssh-fingerprint` option.
 
 #### Optional Variables for Build Flexibility
 These variables can be set to allow builds to pass while fixing code issues:
@@ -96,17 +104,17 @@ php scaffold-installer.php --latest
 
 2. Non-interactive installation with DrevOps and CircleCI:
 ```bash
-php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive
+php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --non-interactive --ssh-fingerprint="01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef"
 ```
 
 3. Dry run to preview changes:
 ```bash
-php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --dry-run
+php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --dry-run --ssh-fingerprint="01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef"
 ```
 
 4. Force installation with backups:
 ```bash
-php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --force
+php scaffold-installer.php --latest --scaffold=drevops --ci=circleci --hosting=lagoon --force --ssh-fingerprint="01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef"
 ```
 
 ## Project Structure
