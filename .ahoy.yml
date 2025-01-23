@@ -1,0 +1,26 @@
+---
+ahoyapi: v2
+
+commands:
+  up:
+    usage: Start the testing environment
+    cmd: |
+      docker-compose -f docker-compose.test.yml up -d
+
+  down:
+    usage: Stop and remove the testing environment
+    cmd: |
+      docker-compose -f docker-compose.test.yml down -v
+
+  test:
+    usage: Run installer tests
+    cmd: |
+      echo "Running installer tests..."
+      echo "1. Testing dry run mode..."
+      docker-compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --dry-run
+      echo "2. Testing CircleCI with Lagoon..."
+      docker-compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
+      echo "3. Testing GitHub Actions with Acquia..."
+      docker-compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --ci=github --hosting=acquia
+      echo "4. Testing force mode..."
+      docker-compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --force 

@@ -22,7 +22,7 @@
 	-	Output pre-update and post-update versioning information.
 
 	-	File Handling:
-	-	Files (e.g., .circleci/config.yml, .github/workflows/*.yml, renovate.json) will be copied to the project root, creating directories if they don’t exist.
+	-	Files (e.g., .circleci/config.yml, .github/workflows/*.yml, renovate.json) will be copied to the project root, creating directories if they don't exist.
 	-	A shared renovate.json file will work for both CircleCI and GitHub Actions.
 	-	Hosting-specific configurations will adjust only artifact deployment logic.
 
@@ -133,6 +133,60 @@ Errors:
 
 php scaffold-installer.php --version=1.2.0
 
+6. Testing Environment
+	-	Docker-based Testing:
+	-	Uses Lagoon PHP 8.3 CLI image (uselagoon/php-8.3-cli-drupal:24.10.0)
+	-	Project root mounted at /app
+	-	Pre-created test directories for CI configurations
+	-	Focused on installer script validation
+
+	-	Prerequisites:
+	-	Docker
+	-	Docker Compose
+	-	Ahoy CLI tool
+
+	-	Environment Variables:
+	-	COMPOSER_ALLOW_SUPERUSER=1
+	-	COMPOSER_CACHE_DIR=/tmp/.composer/cache
+	-	GITHUB_TOKEN (optional, for private repositories)
+
+	-	Ahoy Commands:
+	-	Start environment:
+	```bash
+	ahoy up
+	```
+	-	Run all tests:
+	```bash
+	ahoy test
+	```
+	-	Stop environment:
+	```bash
+	ahoy down
+	```
+
+	-	Manual Test Scenarios:
+	-	Dry run mode testing:
+	```bash
+	php scaffold-installer.php --latest --dry-run
+	```
+	-	CI/CD integration testing:
+	```bash
+	php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
+	php scaffold-installer.php --latest --ci=github --hosting=acquia
+	```
+	-	Force mode testing:
+	```bash
+	php scaffold-installer.php --latest --force
+	```
+
+	-	File Structure:
+	-	Dockerfile.test: Testing environment configuration
+	-	docker-compose.test.yml: Service definition
+	-	.ahoy.yml: Ahoy commands configuration
+	-	/app/tests: Directory for test files
+	-	/app/.circleci: Pre-created directory for CircleCI config
+	-	/app/.github/workflows: Pre-created directory for GitHub Actions
+
 Validation Against Requirements
 	1.	CI/CD Options: Both CircleCI and GitHub Actions are supported, with corresponding files copied and configured based on user choice.
 	2.	Hosting Environments: Lagoon and Acquia are fully supported, with only artifact deployment logic differing.
@@ -140,6 +194,7 @@ Validation Against Requirements
 	4.	Interactive Prompts: User choices determine file overwrites and configurations, with detailed output before and after execution.
 	5.	Shared RenovateBot File: renovate.json works across both CI/CD systems, placed in the project root.
 	6.	Dry-Run and Summary: Reports are plain-text, clearly summarizing changes and skipped actions.
+	7.	Testing Environment: Docker-based setup for running tests with PHP 8.3 and MariaDB.
 
 ## Project Structure
 

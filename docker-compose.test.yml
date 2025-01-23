@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app:delegated
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+
+  mariadb:
+    image: uselagoon/mariadb-drupal:24.10.0
+    environment:
+      - MARIADB_DATABASE=drupal
+      - MARIADB_USER=drupal
+      - MARIADB_PASSWORD=drupal
+      - MARIADB_ROOT_PASSWORD=drupal 
