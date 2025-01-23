@@ -5,22 +5,81 @@ commands:
   up:
     usage: Start the testing environment
     cmd: |
+      # Clean up any existing resources
+      docker compose -f docker-compose.test.yml down -v
+      docker system prune -f --volumes
+      # Build and start fresh
+      docker compose -f docker-compose.test.yml build --no-cache --pull
       docker compose -f docker-compose.test.yml up -d
 
   down:
     usage: Stop and remove the testing environment
     cmd: |
       docker compose -f docker-compose.test.yml down -v
+      docker system prune -af --volumes
 
   test:
     usage: Run installer tests
     cmd: |
       echo "Running installer tests..."
-      echo "1. Testing dry run mode..."
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --dry-run
-      echo "2. Testing CircleCI with Lagoon..."
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
-      echo "3. Testing GitHub Actions with Acquia..."
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --ci=github --hosting=acquia
-      echo "4. Testing force mode..."
-      docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php --latest --force 
+      
+      # Function to run a test and check result
+      run_test() {
+        local test_name=$1
+        local test_dir=$2
+        shift 2
+        local test_cmd=("$@")
+        
+        echo -e "\n\033[1mRunning test: $test_name\033[0m"
+        
+        # Clean test directory before test
+        docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
+        docker compose -f docker-compose.test.yml exec -T test mkdir -p "$test_dir"
+        
+        # Run the test
+        if docker compose -f docker-compose.test.yml exec -T test php scaffold-installer.php "${test_cmd[@]}" --non-interactive --source-dir=/source --target-dir="$test_dir"; then
+          echo -e "\033[32m✓ Test passed: $test_name\033[0m"
+          test_result=0
+        else
+          echo -e "\033[31m✗ Test failed: $test_name\033[0m"
+          test_result=1
+        fi
+        
+        # Show directory contents after test
+        echo -e "\n\033[1mTest directory contents for $test_name:\033[0m"
+        docker compose -f docker-compose.test.yml exec -T test ls -la "$test_dir"
+        
+        # Clean up after test
+        docker compose -f docker-compose.test.yml exec -T test rm -rf "$test_dir"
+        
+        return $test_result
+      }
+
+      # Track overall test status
+      test_status=0
+
+      # Test Matrix
+      ci_types=("circleci" "github")
+      hosting_types=("lagoon" "acquia")
+
+      # 1. Normal installation tests
+      for ci in "${ci_types[@]}"; do
+        for hosting in "${hosting_types[@]}"; do
+          run_test "Install - $ci with $hosting" "/workspace/install/$ci-$hosting" --latest --ci="$ci" --hosting="$hosting" || test_status=1
+        done
+      done
+
+      # 2. Force installation tests
+      for ci in "${ci_types[@]}"; do
+        for hosting in "${hosting_types[@]}"; do
+          run_test "Force install - $ci with $hosting" "/workspace/force/$ci-$hosting" --latest --force --ci="$ci" --hosting="$hosting" || test_status=1
+        done
+      done
+
+      # Print final status
+      if [ $test_status -eq 0 ]; then
+        echo -e "\n\033[32m✓ All tests passed\033[0m"
+      else
+        echo -e "\n\033[31m✗ Some tests failed\033[0m"
+        exit 1
+      fi 

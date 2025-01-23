@@ -1,4 +1,4 @@
-# Scaffold Installer Script
+# Scaffold Toolkit Installer Script
 
 1. Core Features
 	-	Interactive Prompts:
@@ -15,199 +15,110 @@
     # Customized: false
     ```
 
-	-	The script will:
-  - Use the https://github.com/salsadigitalauorg/scaffold-toolkit repository for downloading the main installation file.
-	-	Compare the metadata of local files against repository versions.
-	-	Detect missing metadata and assume files are unmodified.
-	-	Output pre-update and post-update versioning information.
+2. Installation Process
+   - Source Directory Handling:
+     - Files are read from a specified source directory (default: '.')
+     - Target directory for installations can be specified (default: '.')
+     - Directory structure is automatically created
+   
+   - File Processing:
+     - Version checking for existing files
+     - Automatic backup creation for overwritten files
+     - Non-interactive mode for automated installations
+     - Proper error handling and reporting
 
-	-	File Handling:
-	-	Files (e.g., .circleci/config.yml, .github/workflows/*.yml, renovate.json) will be copied to the project root, creating directories if they don't exist.
-	-	A shared renovate.json file will work for both CircleCI and GitHub Actions.
-	-	Hosting-specific configurations will adjust only artifact deployment logic.
+3. Testing Environment
+   - Docker-based Testing:
+     - Uses Lagoon PHP 8.3 CLI image
+     - Source code is copied to /source during build
+     - Tests run in /workspace directory
+     - Each test gets a clean environment
 
-2. Workflow Steps
+   - Test Matrix:
+     - CI/CD Types:
+       - CircleCI
+       - GitHub Actions
+     - Hosting Types:
+       - Lagoon
+       - Acquia
+     - Installation Types:
+       - Normal installation
+       - Force installation with backups
 
-A. Initialization
-	-	Download the installer:
+   - Test Process:
+     - Clean environment before each test
+     - Run installation
+     - Show directory contents
+     - Clean up after test
+     - Colored output for pass/fail status
 
-curl -O https://raw.githubusercontent.com/your-org/scaffold-repo/main/scaffold-installer.php
-php scaffold-installer.php --latest
+4. Project Structure
+   ```
+   .
+   ├── ci/
+   │   ├── circleci/               # CircleCI configuration
+   │   │   ├── acquia/            # Acquia-specific config
+   │   │   └── lagoon/            # Lagoon-specific config
+   │   └── gha/                   # GitHub Actions
+   │       ├── acquia/            # Acquia-specific config
+   │       └── lagoon/            # Lagoon-specific config
+   ├── renovatebot/
+   │   └── drupal/                # Drupal-specific Renovate config
+   │       └── renovate.json
+   ├── scaffold-installer.php     # Main installer script
+   ├── Dockerfile.test           # Testing environment setup
+   ├── docker-compose.test.yml   # Docker Compose configuration
+   └── .ahoy.yml                 # Ahoy commands for testing
+   ```
 
+5. Command Line Options
+   ```bash
+   php scaffold-installer.php [options]
+   
+   Options:
+   --latest                Use latest version
+   --version=<tag>         Use specific version
+   --force                 Overwrite existing files
+   --ci=<type>            Select CI/CD type (circleci|github)
+   --hosting=<type>       Select hosting (lagoon|acquia)
+   --source-dir=<path>    Source directory for files
+   --target-dir=<path>    Target directory for installation
+   --non-interactive      Run without prompts
+   ```
 
-	-	Provide the following options:
-	-	--latest: Fetch and apply the latest scaffold release.
-	-	--version=<tag>: Fetch and apply a specific release.
-	-	--dry-run: Simulate changes and output a report.
-	-	--ci=<circleci|github>: Pre-select CI/CD integration.
-	-	--hosting=<lagoon|acquia>: Pre-select hosting environment.
+6. Testing Commands
+   ```bash
+   # Start testing environment
+   ahoy up
 
-B. Interactive Prompts
-	-	CI/CD Selection:
-	-	Prompt:
+   # Run all tests
+   ahoy test
 
-Select CI/CD integration:
-1. CircleCI
-2. GitHub Actions
+   # Stop and clean environment
+   ahoy down
+   ```
 
+7. Test Output Format
+   ```
+   Running test: Install - circleci with lagoon
+   ✓ Test passed: Install - circleci with lagoon
 
-	-	Corresponding Actions:
-	-	Copy .circleci/config.yml or .github/workflows/*.yml into the project root.
-	-	Create missing directories if needed.
+   Test directory contents for Install - circleci with lagoon:
+   .circleci/
+   └── config.yml
+   renovate.json
+   ```
 
-	-	Hosting Environment:
-	-	Prompt:
+8. Error Handling
+   - Proper error messages for missing files
+   - Validation of source and target directories
+   - Exit codes for test failures
+   - Colored output for errors and successes
+   - Backup creation before file modifications
 
-Select hosting environment:
-1. Lagoon
-2. Acquia
-
-
-	-	Corresponding Actions:
-	-	Adjust artifact deployment configurations in the CI/CD file (e.g., Lagoon vs. Acquia-specific logic).
-
-	-	File Handling:
-	-	For each file, output its current state and ask for confirmation:
-
-File: renovate.json
-Current Version: 1.0.0
-Repository Version: 1.1.0
-Customized: false
-Would you like to override this file? [y/n]
-
-
-	-	If metadata is missing, assume the file is unmodified and prompt:
-
-File: renovate.json
-Metadata missing; assuming unmodified.
-Would you like to override this file? [y/n]
-
-C. Dry-Run Mode
-	-	Simulates the entire process without making changes.
-	-	Outputs a plain-text report:
-
-Dry Run Report:
-Files to be updated:
-  - renovate.json (1.0.0 → 1.1.0)
-  - .circleci/config.yml (new file)
-Files skipped:
-  - .env (unchanged)
-
-D. Execution Summary
-	-	At the end of execution, print a summary:
-
-Execution Summary:
-Updated Files:
-  - renovate.json (1.0.0 → 1.1.0)
-  - .github/workflows/main.yml (new file)
-Skipped Files:
-  - .env (unchanged)
-Errors:
-  - Failed to write to .circleci/config.yml: Permission denied
-
-3. Hosting-Specific CI/CD Logic
-	-	Lagoon Configuration:
-	-	Artifact deployment configured to Lagoon.
-	-	Relevant variables (e.g., LAGOON_PROJECT, DREVOPS_DEPLOY_TYPES) included in .env.
-	-	Acquia Configuration:
-	-	Artifact deployment logic updated for Acquia pipelines.
-	-	Variables (e.g., ACQUIA_DB_NAME, ACQUIA_APP_NAME) included in .env.
-	-	The script ensures that all other CI/CD steps (e.g., RenovateBot) remain identical across hosting environments.
-
-4. File Versioning
-	-	Repository files will include version metadata in comments:
-
-# Version: 1.1.0
-# Customized: false
-
-
-	-	Local files missing metadata are assumed unmodified.
-	-	Metadata is updated post-overwrite.
-
-5. GitHub Integration
-	-	Release Management:
-	-	Fetch latest or specific versions from GitHub releases using:
-	-	curl to download the installer script.
-	-	GitHub API to fetch release files.
-	-	Command Example:
-
-php scaffold-installer.php --version=1.2.0
-
-6. Testing Environment
-	-	Docker-based Testing:
-	-	Uses Lagoon PHP 8.3 CLI image (uselagoon/php-8.3-cli-drupal:24.10.0)
-	-	Project root mounted at /app
-	-	Pre-created test directories for CI configurations
-	-	Focused on installer script validation
-
-	-	Prerequisites:
-	-	Docker
-	-	Docker Compose V2
-	-	Ahoy CLI tool
-
-	-	Environment Variables:
-	-	COMPOSER_ALLOW_SUPERUSER=1
-	-	COMPOSER_CACHE_DIR=/tmp/.composer/cache
-	-	GITHUB_TOKEN (optional, for private repositories)
-
-	-	Ahoy Commands:
-	-	Start environment:
-	```bash
-	ahoy up
-	```
-	-	Run all tests:
-	```bash
-	ahoy test
-	```
-	-	Stop environment:
-	```bash
-	ahoy down
-	```
-
-	-	Manual Test Scenarios:
-	-	Dry run mode testing:
-	```bash
-	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --dry-run
-	```
-	-	CI/CD integration testing:
-	```bash
-	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
-	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=github --hosting=acquia
-	```
-	-	Force mode testing:
-	```bash
-	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --force
-	```
-
-	-	File Structure:
-	-	Dockerfile.test: Testing environment configuration
-	-	docker-compose.test.yml: Service definition
-	-	.ahoy.yml: Ahoy commands configuration
-	-	/app/tests: Directory for test files
-	-	/app/.circleci: Pre-created directory for CircleCI config
-	-	/app/.github/workflows: Pre-created directory for GitHub Actions
-
-Validation Against Requirements
-	1.	CI/CD Options: Both CircleCI and GitHub Actions are supported, with corresponding files copied and configured based on user choice.
-	2.	Hosting Environments: Lagoon and Acquia are fully supported, with only artifact deployment logic differing.
-	3.	File Metadata and Versioning: Files include metadata for version tracking, with clear prompts for missing or mismatched versions.
-	4.	Interactive Prompts: User choices determine file overwrites and configurations, with detailed output before and after execution.
-	5.	Shared RenovateBot File: renovate.json works across both CI/CD systems, placed in the project root.
-	6.	Dry-Run and Summary: Reports are plain-text, clearly summarizing changes and skipped actions.
-	7.	Testing Environment: Docker-based setup for running tests with PHP 8.3 and MariaDB.
-
-## Project Structure
-
-.
-├── ci
-│   ├── circleci                  # CircleCI configuration
-│   │   ├── acquia                # Configuration for Acquia and CircleCI
-│   │   └── lagoon                # Configuration for Lagoon and CircleCI
-│   └── gha
-│       ├── acquia                # Configuration for Acquia and GitHub Actions
-│       └── lagoon                # Configuration for Lagoon and GitHub Actions
-└── renovatebot                   # Renovate configuration for Drupal and GovCMS PAAS
-    ├── drupal
-    │   └── renovate.json         # Renovate configuration for Drupal
-    └── govcms_paas
-        └── renovate.json         # Renovate configuration for GovCMS PAAS
+9. Development Guidelines
+   - Keep source files versioned
+   - Add tests for new features
+   - Clean up test environment between runs
+   - Use non-interactive mode for CI/CD
+   - Follow Drupal coding standards
