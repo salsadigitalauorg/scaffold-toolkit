@@ -5,7 +5,7 @@ A toolkit for scaffolding CI/CD configurations for Drupal projects, supporting b
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker Compose V2](https://docs.docker.com/compose/install/)
 - [Ahoy](https://github.com/ahoy-cli/ahoy#installation)
 
 ## Features
@@ -81,23 +81,23 @@ If you prefer not to use Ahoy, you can run the commands directly:
 
 1. Build and start the testing environment:
 ```bash
-docker-compose -f docker-compose.test.yml build
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml build
+docker compose -f docker-compose.test.yml up -d
 ```
 
 2. Run installer tests:
 ```bash
 # Test with dry run
-docker-compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --dry-run
+docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --dry-run
 
 # Test with CircleCI and Lagoon
-docker-compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
+docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
 
 # Test with GitHub Actions and Acquia
-docker-compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=github --hosting=acquia
+docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=github --hosting=acquia
 
 # Test with force flag
-docker-compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --force
+docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --force
 ```
 
 #### Testing Environment Features

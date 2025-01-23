@@ -142,7 +142,7 @@ php scaffold-installer.php --version=1.2.0
 
 	-	Prerequisites:
 	-	Docker
-	-	Docker Compose
+	-	Docker Compose V2
 	-	Ahoy CLI tool
 
 	-	Environment Variables:
@@ -167,16 +167,16 @@ php scaffold-installer.php --version=1.2.0
 	-	Manual Test Scenarios:
 	-	Dry run mode testing:
 	```bash
-	php scaffold-installer.php --latest --dry-run
+	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --dry-run
 	```
 	-	CI/CD integration testing:
 	```bash
-	php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
-	php scaffold-installer.php --latest --ci=github --hosting=acquia
+	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=circleci --hosting=lagoon
+	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --ci=github --hosting=acquia
 	```
 	-	Force mode testing:
 	```bash
-	php scaffold-installer.php --latest --force
+	docker compose -f docker-compose.test.yml exec test php scaffold-installer.php --latest --force
 	```
 
 	-	File Structure:
