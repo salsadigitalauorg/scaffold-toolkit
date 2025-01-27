@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.13';
+    private string $version = '1.0.14';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -131,8 +131,8 @@ class ScaffoldInstaller {
         // 2. Select CI/CD integration
         $this->selectCiType();
         
-        // 2.1. If CircleCI, prompt for SSH fingerprint
-        if ($this->ciType === 'circleci' && !$this->sshFingerprint) {
+        // 2.1. If CircleCI was selected, prompt for the SSH MD5 hash
+        if ($this->ciType === 'circleci') {
             $this->sshFingerprint = $this->promptSshFingerprint();
         }
 
@@ -1020,7 +1020,7 @@ EOD;
             throw new \Exception('SSH fingerprint is required for CircleCI in non-interactive mode. Use --ssh-fingerprint option.');
         }
 
-        echo "CircleCI requires an SSH key fingerprint for deployment.\n";
+        echo "\nCircleCI requires an SSH key fingerprint for deployment.\n";
         echo "Please follow these steps to set up your SSH key:\n";
         echo "1. Go to CircleCI project settings\n";
         echo "2. Navigate to SSH Keys section\n";
@@ -1034,7 +1034,7 @@ EOD;
             echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
         }
         
-        $fingerprint = trim(readline(''));
+        $fingerprint = trim(fgets(STDIN));
         
         if ($fingerprint === '' && isset($this->savedValues['ssh_fingerprint'])) {
             return $this->savedValues['ssh_fingerprint'];
