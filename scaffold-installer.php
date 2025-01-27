@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.4';
+    private string $version = '1.0.6';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -270,7 +270,7 @@ class ScaffoldInstaller {
      * Select the scaffold type.
      */
     private function selectScaffoldType(): void {
-        if ($this->scaffoldType === null) {
+        if ($this->scaffoldType === null || !$this->nonInteractive) {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('Scaffold type must be specified in non-interactive mode');
             }
@@ -315,7 +315,7 @@ class ScaffoldInstaller {
      * Select the CI/CD type.
      */
     private function selectCiType(): void {
-        if ($this->ciType === null) {
+        if ($this->ciType === null || !$this->nonInteractive) {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('CI type must be specified in non-interactive mode');
             }
@@ -340,7 +340,7 @@ class ScaffoldInstaller {
                 echo "Only CircleCI is currently supported.\n\n";
                 echo "Would you like to proceed with CircleCI instead? [Y/n] ";
                 $answer = trim(fgets(STDIN)) ?: 'y';
-                if (strtolower($answer) === 'n') {
+                if (strtolower($answer) !== 'n') {
                     $this->ciType = 'circleci';
                 } else {
                     echo "Installation cancelled.\n";
@@ -360,7 +360,7 @@ class ScaffoldInstaller {
      * Select the hosting environment.
      */
     private function selectHostingType(): void {
-        if ($this->hostingType === null) {
+        if ($this->hostingType === null || !$this->nonInteractive) {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('Hosting type must be specified in non-interactive mode');
             }
