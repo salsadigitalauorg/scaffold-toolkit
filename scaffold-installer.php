@@ -369,6 +369,11 @@ class ScaffoldInstaller {
             // Replace repository placeholder with CI-specific variable
             $content = $this->replaceRepositoryPlaceholder($content);
 
+            // Replace SSH fingerprint placeholder if this is a CircleCI config file
+            if ($this->ciType === 'circleci' && $file['target'] === '.circleci/config.yml') {
+                $content = $this->replaceSshFingerprintPlaceholder($content);
+            }
+
             if (file_exists($targetFile) && !$this->force) {
                 $currentVersion = $this->getFileVersion($targetFile);
                 $newVersion = $this->getVersionFromContent($content);
@@ -406,6 +411,17 @@ class ScaffoldInstaller {
         }
         
         return str_replace($placeholder, $replacement, $content);
+    }
+
+    /**
+     * Replace SSH fingerprint placeholder with actual fingerprint.
+     */
+    private function replaceSshFingerprintPlaceholder(string $content): string {
+        if (!$this->sshFingerprint) {
+            throw new \RuntimeException('SSH fingerprint is required for CircleCI configuration.');
+        }
+        
+        return str_replace('${SCAFFOLD_TOOLKIT_SSH_FINGERPRINT}', $this->sshFingerprint, $content);
     }
 
     /**
