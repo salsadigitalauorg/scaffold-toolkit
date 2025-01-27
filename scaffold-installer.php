@@ -31,6 +31,8 @@ class ScaffoldInstaller {
     private ?string $sshFingerprint = null;
     private bool $shouldUpdateScripts = false;
     private array $changedFiles = [];
+    private array $savedValues = [];
+    private string $configFile;
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -43,6 +45,7 @@ class ScaffoldInstaller {
         $this->useLocalFiles = isset($options['use-local-files']);
         $this->scaffoldType = $options['scaffold'] ?? null;
         $this->sshFingerprint = $options['ssh-fingerprint'] ?? null;
+        $this->configFile = $this->targetDir . '/.scaffold-toolkit.json';
         
         if (isset($options['version'])) {
             $this->version = $options['version'];
@@ -54,6 +57,57 @@ class ScaffoldInstaller {
         
         if (isset($options['github-branch'])) {
             $this->githubBranch = $options['github-branch'];
+        }
+
+        $this->loadSavedValues();
+    }
+
+    /**
+     * Load previously saved values from config file.
+     */
+    private function loadSavedValues(): void {
+        if (file_exists($this->configFile)) {
+            $content = file_get_contents($this->configFile);
+            if ($content !== false) {
+                $values = json_decode($content, true);
+                if (is_array($values)) {
+                    $this->savedValues = $values;
+                    
+                    // Load saved values if not provided in options
+                    if (!$this->scaffoldType && isset($this->savedValues['scaffold_type'])) {
+                        $this->scaffoldType = $this->savedValues['scaffold_type'];
+                    }
+                    if (!$this->ciType && isset($this->savedValues['ci_type'])) {
+                        $this->ciType = $this->savedValues['ci_type'];
+                    }
+                    if (!$this->hostingType && isset($this->savedValues['hosting_type'])) {
+                        $this->hostingType = $this->savedValues['hosting_type'];
+                    }
+                    if (!$this->sshFingerprint && isset($this->savedValues['ssh_fingerprint'])) {
+                        $this->sshFingerprint = $this->savedValues['ssh_fingerprint'];
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Save current values to config file.
+     */
+    private function saveValues(): void {
+        if ($this->dryRun) {
+            return;
+        }
+
+        $values = [
+            'scaffold_type' => $this->scaffoldType,
+            'ci_type' => $this->ciType,
+            'hosting_type' => $this->hostingType,
+            'ssh_fingerprint' => $this->sshFingerprint,
+        ];
+
+        if (file_put_contents($this->configFile, json_encode($values, JSON_PRETTY_PRINT)) === false) {
+            echo "Warning: Failed to save configuration values.\n";
         }
     }
 
@@ -97,6 +151,9 @@ class ScaffoldInstaller {
             $this->updateScriptsAndTwigCs();
         }
 
+        // Save current values
+        $this->saveValues();
+
         $this->printSummary();
     }
 
@@ -133,7 +190,18 @@ class ScaffoldInstaller {
             echo "1. DrevOps\n";
             echo "2. Vortex (coming soon)\n";
             echo "3. GovCMS PaaS (coming soon)\n";
+            
+            if (isset($this->savedValues['scaffold_type'])) {
+                echo "\nPreviously used: {$this->savedValues['scaffold_type']}\n";
+                echo "Press Enter to use the previous value, or select a new option: ";
+            }
+            
             $choice = trim(fgets(STDIN));
+            
+            if ($choice === '' && isset($this->savedValues['scaffold_type'])) {
+                $this->scaffoldType = $this->savedValues['scaffold_type'];
+                return;
+            }
             
             switch ($choice) {
                 case '1':
@@ -166,7 +234,18 @@ class ScaffoldInstaller {
             echo "Select CI/CD integration:\n";
             echo "1. CircleCI\n";
             echo "2. GitHub Actions (Coming soon)\n";
+            
+            if (isset($this->savedValues['ci_type'])) {
+                echo "\nPreviously used: {$this->savedValues['ci_type']}\n";
+                echo "Press Enter to use the previous value, or select a new option: ";
+            }
+            
             $choice = trim(fgets(STDIN));
+            
+            if ($choice === '' && isset($this->savedValues['ci_type'])) {
+                $this->ciType = $this->savedValues['ci_type'];
+                return;
+            }
             
             if ($choice === '2') {
                 echo "\nNOTE: GitHub Actions integration is not yet available.\n";
@@ -200,7 +279,19 @@ class ScaffoldInstaller {
             echo "Select hosting environment:\n";
             echo "1. Lagoon\n";
             echo "2. Acquia\n";
+            
+            if (isset($this->savedValues['hosting_type'])) {
+                echo "\nPreviously used: {$this->savedValues['hosting_type']}\n";
+                echo "Press Enter to use the previous value, or select a new option: ";
+            }
+            
             $choice = trim(fgets(STDIN));
+            
+            if ($choice === '' && isset($this->savedValues['hosting_type'])) {
+                $this->hostingType = $this->savedValues['hosting_type'];
+                return;
+            }
+            
             $this->hostingType = $choice === '1' ? 'lagoon' : 'acquia';
         }
     }
@@ -776,7 +867,18 @@ class ScaffoldInstaller {
         echo "3. Add a new SSH key or use an existing one\n";
         echo "4. Copy the fingerprint (MD5 format)\n\n";
         
-        $fingerprint = readline("Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ");
+        if (isset($this->savedValues['ssh_fingerprint'])) {
+            echo "Previously used fingerprint: {$this->savedValues['ssh_fingerprint']}\n";
+            echo "Press Enter to use the previous value, or enter a new fingerprint: ";
+        } else {
+            echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
+        }
+        
+        $fingerprint = trim(readline(''));
+        
+        if ($fingerprint === '' && isset($this->savedValues['ssh_fingerprint'])) {
+            return $this->savedValues['ssh_fingerprint'];
+        }
         
         if (!preg_match('/^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$/', $fingerprint)) {
             throw new \Exception('Invalid SSH key fingerprint format. It should be in MD5 format (16 pairs of hexadecimal digits separated by colons).');
