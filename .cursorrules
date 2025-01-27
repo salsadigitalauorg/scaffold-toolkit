@@ -146,4 +146,5 @@
    - Test both GitHub and local file modes
 
 # File version tracking
+Aleays increment version in the installer script and in this file.
 scaffold-installer.php=1.0.7

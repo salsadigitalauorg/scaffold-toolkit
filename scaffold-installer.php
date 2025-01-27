@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.7';
+    private string $version = '1.0.8';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -497,14 +497,14 @@ class ScaffoldInstaller {
         // CI/CD configuration files
         if ($this->ciType === 'circleci') {
             $files[] = [
-                'source' => ".scaffold-installer/circleci/{$this->hostingType}/config.yml",
+                'source' => "{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
         }
 
         // RenovateBot configuration is always installed
         $files[] = [
-            'source' => '.scaffold-installer/renovatebot/drupal/renovate.json',
+            'source' => 'renovatebot/drupal/renovate.json',
             'target' => 'renovate.json',
         ];
 
