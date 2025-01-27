@@ -408,21 +408,20 @@ class ScaffoldInstaller {
                     exit(1);
                 }
                 
-                echo "\nWould you like to overwrite these files? (This will create backups) [y/n] ";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) === 'y') {
-                    $this->force = true;
-                } else {
+                echo "\nWould you like to overwrite these files? (This will create backups) [Y/n] ";
+                $answer = trim(fgets(STDIN)) ?: 'y';
+                if (strtolower($answer) === 'n') {
                     echo "Installation cancelled.\n";
                     exit(1);
                 }
+                $this->force = true;
             }
             
             if (!$this->dryRun && !$this->nonInteractive) {
                 echo "\nWARNING: These files will be backed up and overwritten.\n";
-                echo "Continue? [y/n] ";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) !== 'y') {
+                echo "Continue? [Y/n] ";
+                $answer = trim(fgets(STDIN)) ?: 'y';
+                if (strtolower($answer) === 'n') {
                     echo "Installation cancelled.\n";
                     exit(1);
                 }
@@ -706,7 +705,7 @@ class ScaffoldInstaller {
         echo "Would you like to proceed with updating scripts directory and .twig_cs.php? [Y/n] ";
         
         $answer = trim(fgets(STDIN)) ?: 'y';
-        $this->shouldUpdateScripts = strtolower($answer) === 'y';
+        $this->shouldUpdateScripts = strtolower($answer) !== 'n';
     }
 
     /**
@@ -732,10 +731,10 @@ class ScaffoldInstaller {
         }
 
         echo "\nWARNING: This operation will create backups of existing files before replacing them.\n";
-        echo "Would you like to proceed with these changes? [y/N] ";
+        echo "Would you like to proceed with these changes? [Y/n] ";
         
-        $answer = trim(fgets(STDIN)) ?: 'n';
-        return strtolower($answer) === 'y';
+        $answer = trim(fgets(STDIN)) ?: 'y';
+        return strtolower($answer) !== 'n';
     }
 
     /**
@@ -1010,9 +1009,9 @@ class ScaffoldInstaller {
      * Ask user if they want to remove the installer file.
      */
     private function askCleanup(): void {
-        echo "\nWould you like to remove the installer file (scaffold-installer.php)? [y/n] ";
-        $answer = trim(fgets(STDIN));
-        if (strtolower($answer) === 'y') {
+        echo "\nWould you like to remove the installer file (scaffold-installer.php)? [Y/n] ";
+        $answer = trim(fgets(STDIN)) ?: 'y';
+        if (strtolower($answer) !== 'n') {
             $installerFile = __FILE__;
             if (unlink($installerFile)) {
                 echo "Installer file removed successfully.\n";
