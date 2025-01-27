@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.2';
+    private string $version = '1.0.4';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -338,9 +338,9 @@ class ScaffoldInstaller {
             if ($choice === '2') {
                 echo "\nNOTE: GitHub Actions integration is not yet available.\n";
                 echo "Only CircleCI is currently supported.\n\n";
-                echo "Would you like to proceed with CircleCI instead? [y/n] ";
-                $answer = trim(fgets(STDIN));
-                if (strtolower($answer) === 'y') {
+                echo "Would you like to proceed with CircleCI instead? [Y/n] ";
+                $answer = trim(fgets(STDIN)) ?: 'y';
+                if (strtolower($answer) === 'n') {
                     $this->ciType = 'circleci';
                 } else {
                     echo "Installation cancelled.\n";
@@ -497,14 +497,14 @@ class ScaffoldInstaller {
         // CI/CD configuration files
         if ($this->ciType === 'circleci') {
             $files[] = [
-                'source' => "ci/circleci/{$this->hostingType}/config.yml",
+                'source' => ".scaffold-installer/ci/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
         }
 
         // RenovateBot configuration is always installed
         $files[] = [
-            'source' => 'renovatebot/drupal/renovate.json',
+            'source' => '.scaffold-installer/renovatebot/drupal/renovate.json',
             'target' => 'renovate.json',
         ];
 
@@ -684,9 +684,9 @@ class ScaffoldInstaller {
             return $this->force;
         }
 
-        echo "Would you like to override this file? [y/n] ";
-        $answer = trim(fgets(STDIN));
-        return strtolower($answer) === 'y';
+        echo "Would you like to override this file? [Y/n] ";
+        $answer = trim(fgets(STDIN)) ?: 'y';
+        return strtolower($answer) !== 'n';
     }
 
     /**
@@ -893,7 +893,10 @@ EOD;
         }
 
         foreach ($files as $file) {
-            $targetPath = $targetDir . '/' . basename($file['path']);
+            // Preserve the full path structure
+            $relativePath = substr($file['path'], strlen($dir));
+            $relativePath = ltrim($relativePath, '/');
+            $targetPath = $targetDir . '/' . $relativePath;
 
             if ($file['type'] === 'dir') {
                 if (!file_exists($targetPath)) {
@@ -901,12 +904,20 @@ EOD;
                         throw new \RuntimeException("Failed to create directory: {$targetPath}");
                     }
                 }
-                $this->downloadDirectoryRecursive($file['path'], $targetPath);
+                $this->downloadDirectoryRecursive($file['path'], dirname($targetPath));
             } else {
                 // For files, download directly from the download_url
                 $downloadUrl = $file['download_url'];
                 if (!$downloadUrl) {
                     throw new \RuntimeException("No download URL available for file: {$file['path']}");
+                }
+
+                // Ensure the parent directory exists
+                $parentDir = dirname($targetPath);
+                if (!file_exists($parentDir)) {
+                    if (!mkdir($parentDir, 0755, true)) {
+                        throw new \RuntimeException("Failed to create directory: {$parentDir}");
+                    }
                 }
 
                 $ch = curl_init();

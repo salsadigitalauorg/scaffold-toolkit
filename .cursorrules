@@ -146,4 +146,4 @@
    - Test both GitHub and local file modes
 
 # File version tracking
-scaffold-installer.php=1.0.2
+scaffold-installer.php=1.0.4
