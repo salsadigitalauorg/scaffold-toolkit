@@ -668,17 +668,36 @@ class ScaffoldInstaller {
             }
         }
 
-        // Copy new scripts directory
+        // Download or copy scripts directory
         if (!$this->dryRun) {
-            $sourceScriptsDir = $this->useLocalFiles 
-                ? $this->sourceDir . '/scripts'
-                : $this->downloadDirectory('scripts');
-            
-            if (!$this->copyDirectory($sourceScriptsDir, $targetScriptsDir)) {
-                throw new \RuntimeException("Failed to copy scripts directory");
+            try {
+                if ($this->useLocalFiles) {
+                    $sourceScriptsDir = $this->sourceDir . '/scripts';
+                    if (!$this->copyDirectory($sourceScriptsDir, $targetScriptsDir)) {
+                        throw new \RuntimeException("Failed to copy scripts directory");
+                    }
+                } else {
+                    // Create target scripts directory
+                    if (!is_dir($targetScriptsDir) && !mkdir($targetScriptsDir, 0755, true)) {
+                        throw new \RuntimeException("Failed to create scripts directory");
+                    }
+                    
+                    // Download directly to the target directory
+                    $this->downloadDirectoryRecursive('scripts', $targetScriptsDir);
+                }
+                $this->changedFiles[] = 'scripts/';
+                echo "Updated scripts directory\n";
+            } catch (\Exception $e) {
+                // If something goes wrong and we have a backup, restore it
+                if (isset($backupScriptsDir) && is_dir($backupScriptsDir)) {
+                    if (is_dir($targetScriptsDir)) {
+                        $this->removeDirectory($targetScriptsDir);
+                    }
+                    rename($backupScriptsDir, $targetScriptsDir);
+                    throw new \RuntimeException("Failed to update scripts directory: " . $e->getMessage() . "\nOriginal directory was restored from backup.");
+                }
+                throw $e;
             }
-            $this->changedFiles[] = 'scripts/';
-            echo "Updated scripts directory\n";
         }
 
         // Handle .twig_cs.php
@@ -706,6 +725,22 @@ class ScaffoldInstaller {
             $this->changedFiles[] = '.twig_cs.php';
             echo "Updated .twig_cs.php\n";
         }
+    }
+
+    /**
+     * Remove a directory and its contents recursively.
+     */
+    private function removeDirectory(string $dir): bool {
+        if (!is_dir($dir)) {
+            return false;
+        }
+
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            is_dir($path) ? $this->removeDirectory($path) : unlink($path);
+        }
+        return rmdir($dir);
     }
 
     /**
