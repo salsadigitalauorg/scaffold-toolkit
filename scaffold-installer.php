@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.8';
+    private string $version = '1.0.9';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -168,11 +168,17 @@ class ScaffoldInstaller {
     private function downloadRepository(): void {
         echo "Downloading scaffold files...\n";
 
-        // Create installer directory if it doesn't exist
-        if (!is_dir($this->installerDir)) {
-            if (!mkdir($this->installerDir, 0755, true)) {
-                throw new \RuntimeException("Failed to create installer directory: {$this->installerDir}");
+        // Remove existing installer directory if it exists
+        if (is_dir($this->installerDir)) {
+            echo "Removing existing installer directory...\n";
+            if (!$this->removeDirectory($this->installerDir)) {
+                throw new \RuntimeException("Failed to remove existing installer directory: {$this->installerDir}");
             }
+        }
+
+        // Create installer directory
+        if (!mkdir($this->installerDir, 0755, true)) {
+            throw new \RuntimeException("Failed to create installer directory: {$this->installerDir}");
         }
 
         // Download repository archive
@@ -497,14 +503,14 @@ class ScaffoldInstaller {
         // CI/CD configuration files
         if ($this->ciType === 'circleci') {
             $files[] = [
-                'source' => "{$this->hostingType}/config.yml",
+                'source' => "ci/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
         }
 
         // RenovateBot configuration is always installed
         $files[] = [
-            'source' => 'renovatebot/drupal/renovate.json',
+            'source' => "renovatebot/{$this->scaffoldType}/renovate.json",
             'target' => 'renovate.json',
         ];
 
