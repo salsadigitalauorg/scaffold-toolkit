@@ -77,6 +77,7 @@
    │   └── gha/                   # GitHub Actions (coming soon)
    │       ├── acquia/            # Acquia-specific config
    │       └── lagoon/            # Lagoon-specific config
+   ├── scripts/                   # Scripts directory
    ├── renovatebot/
    │   └── drupal/                # Drupal-specific Renovate config
    │       └── renovate.json
@@ -147,4 +148,4 @@
 
 # File version tracking
 Aleays increment version in the installer script and in this file.
-scaffold-installer.php=1.0.13
+scaffold-installer.php=1.0.15

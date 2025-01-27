@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.14';
+    private string $version = '1.0.15';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -34,6 +34,13 @@ class ScaffoldInstaller {
     private array $savedValues = [];
     private string $configFile;
     private string $installerDir;
+
+    private const GREEN = "\033[32m";
+    private const RESET = "\033[0m";
+
+    private function colorize(string $text): string {
+        return self::GREEN . $text . self::RESET;
+    }
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -284,13 +291,24 @@ class ScaffoldInstaller {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('Scaffold type must be specified in non-interactive mode');
             }
+
+            $options = [
+                '1' => 'DrevOps',
+                '2' => 'Vortex (coming soon)',
+                '3' => 'GovCMS PaaS (coming soon)'
+            ];
+
             echo "Select scaffold type:\n";
-            echo "1. DrevOps\n";
-            echo "2. Vortex (coming soon)\n";
-            echo "3. GovCMS PaaS (coming soon)\n";
+            foreach ($options as $key => $option) {
+                $text = $option;
+                if (isset($this->savedValues['scaffold_type']) && strtolower($option) === $this->savedValues['scaffold_type']) {
+                    $text = $this->colorize($option);
+                }
+                echo "{$key}. {$text}\n";
+            }
             
             if (isset($this->savedValues['scaffold_type'])) {
-                echo "\nPreviously used: {$this->savedValues['scaffold_type']}\n";
+                echo "\nPreviously used: " . $this->colorize($this->savedValues['scaffold_type']) . "\n";
                 echo "Press Enter to use the previous value, or select a new option: ";
             }
             
@@ -329,12 +347,23 @@ class ScaffoldInstaller {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('CI type must be specified in non-interactive mode');
             }
+
+            $options = [
+                '1' => 'CircleCI',
+                '2' => 'GitHub Actions (Coming soon)'
+            ];
+
             echo "Select CI/CD integration:\n";
-            echo "1. CircleCI\n";
-            echo "2. GitHub Actions (Coming soon)\n";
+            foreach ($options as $key => $option) {
+                $text = $option;
+                if (isset($this->savedValues['ci_type']) && strtolower(explode(' ', $option)[0]) === $this->savedValues['ci_type']) {
+                    $text = $this->colorize($option);
+                }
+                echo "{$key}. {$text}\n";
+            }
             
             if (isset($this->savedValues['ci_type'])) {
-                echo "\nPreviously used: {$this->savedValues['ci_type']}\n";
+                echo "\nPreviously used: " . $this->colorize($this->savedValues['ci_type']) . "\n";
                 echo "Press Enter to use the previous value, or select a new option: ";
             }
             
@@ -374,12 +403,23 @@ class ScaffoldInstaller {
             if ($this->nonInteractive) {
                 throw new \RuntimeException('Hosting type must be specified in non-interactive mode');
             }
+
+            $options = [
+                '1' => 'Lagoon',
+                '2' => 'Acquia'
+            ];
+
             echo "Select hosting environment:\n";
-            echo "1. Lagoon\n";
-            echo "2. Acquia\n";
+            foreach ($options as $key => $option) {
+                $text = $option;
+                if (isset($this->savedValues['hosting_type']) && strtolower($option) === $this->savedValues['hosting_type']) {
+                    $text = $this->colorize($option);
+                }
+                echo "{$key}. {$text}\n";
+            }
             
             if (isset($this->savedValues['hosting_type'])) {
-                echo "\nPreviously used: {$this->savedValues['hosting_type']}\n";
+                echo "\nPreviously used: " . $this->colorize($this->savedValues['hosting_type']) . "\n";
                 echo "Press Enter to use the previous value, or select a new option: ";
             }
             
@@ -1028,7 +1068,7 @@ EOD;
         echo "4. Copy the fingerprint (MD5 format)\n\n";
         
         if (isset($this->savedValues['ssh_fingerprint'])) {
-            echo "Previously used fingerprint: {$this->savedValues['ssh_fingerprint']}\n";
+            echo "Previously used fingerprint: " . $this->colorize($this->savedValues['ssh_fingerprint']) . "\n";
             echo "Press Enter to use the previous value, or enter a new fingerprint: ";
         } else {
             echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
