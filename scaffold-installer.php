@@ -752,19 +752,31 @@ class ScaffoldInstaller {
         }
 
         foreach ($files as $file) {
-            $relativePath = $file['path'];
-            $targetPath = $targetDir . '/' . basename($relativePath);
+            // Get the relative path from the base directory
+            $relativePath = substr($file['path'], strlen($dir));
+            $relativePath = ltrim($relativePath, '/');
+            $targetPath = $targetDir . '/' . $relativePath;
 
             if ($file['type'] === 'dir') {
                 if (!is_dir($targetPath)) {
-                    mkdir($targetPath, 0755, true);
+                    if (!mkdir($targetPath, 0755, true)) {
+                        throw new \RuntimeException("Failed to create directory: {$targetPath}");
+                    }
                 }
-                $this->downloadDirectoryRecursive($relativePath, $targetPath);
+                $this->downloadDirectoryRecursive($file['path'], $targetPath);
             } else {
                 // For files, we can use the download_url directly from the GitHub API response
                 $downloadUrl = $file['download_url'];
                 if (!$downloadUrl) {
-                    throw new \RuntimeException("No download URL available for file: {$relativePath}");
+                    throw new \RuntimeException("No download URL available for file: {$file['path']}");
+                }
+
+                // Ensure the target directory exists
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                    if (!mkdir($targetDir, 0755, true)) {
+                        throw new \RuntimeException("Failed to create directory: {$targetDir}");
+                    }
                 }
 
                 $ch = curl_init();
@@ -778,7 +790,7 @@ class ScaffoldInstaller {
                 curl_close($ch);
 
                 if ($httpCode !== 200 || $content === false) {
-                    throw new \RuntimeException("Failed to download file: {$relativePath}");
+                    throw new \RuntimeException("Failed to download file: {$file['path']}");
                 }
 
                 if (!file_put_contents($targetPath, $content)) {
