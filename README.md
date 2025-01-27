@@ -13,11 +13,14 @@ A toolkit for scaffolding CI/CD configurations for Drupal projects.
   - CircleCI (available)
   - GitHub Actions (coming soon)
 - Hosting environments:
-  - Lagoon
+  - Lagoon (with cluster selection)
+    - SalsaDigital cluster support
+    - Automatic environment variable configuration
   - Acquia
 - Automated file versioning
 - Dry-run mode
 - Backup creation for existing files
+- Local configuration storage (.scaffold-toolkit.json)
 
 ## Installation
 
@@ -40,10 +43,37 @@ The installer will prompt you for:
 1. Scaffold type selection
 2. CI/CD integration selection
 3. Hosting environment selection
+   - For Lagoon hosting, additional cluster selection:
+     - SalsaDigital (configures environment variables automatically)
+     - Other
 4. SSH key fingerprint (for CircleCI)
 5. Scripts directory and .twig_cs.php update confirmation
 
 The installer will show a final review of all changes and ask for confirmation before proceeding.
+
+### Local Configuration Storage
+The installer saves your configuration choices in `.scaffold-toolkit.json` for future use. This includes:
+- Selected scaffold type
+- CI/CD integration type
+- Hosting environment
+- Lagoon cluster selection
+- SSH fingerprint (for CircleCI)
+
+These saved values will be suggested as defaults in future runs.
+
+### Environment Variables
+When selecting the SalsaDigital Lagoon cluster, the following environment variables are automatically added to your `.env` file if not already present:
+```
+LAGOON_WEBHOOK_ENDPOINT=https://webhookhandler.salsa.hosting/
+DREVOPS_DEPLOY_LAGOON_INSTANCE=salsa
+DREVOPS_DEPLOY_LAGOON_INSTANCE_GRAPHQL=https://api.salsa.hosting/graphql
+DREVOPS_DEPLOY_LAGOON_INSTANCE_HOSTNAME=ssh.salsa.hosting
+DREVOPS_DB_DOWNLOAD_LAGOON_SSH_HOST=ssh.salsa.hosting
+DREVOPS_TASK_LAGOON_INSTANCE_HOSTNAME=ssh.salsa.hosting
+DREVOPS_DEPLOY_LAGOON_INSTANCE_PORT=22
+DREVOPS_DB_DOWNLOAD_LAGOON_SSH_PORT=22
+DREVOPS_TASK_LAGOON_INSTANCE_PORT=22
+```
 
 ### Non-Interactive Mode
 Specify all required options for automated installation:

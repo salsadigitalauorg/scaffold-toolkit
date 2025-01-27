@@ -10,9 +10,13 @@
 	2.	CI/CD Integration:
 		- CircleCI (available)
 		- GitHub Actions (coming soon)
+	2.1. SSH Key MD5 Hash (if CircleCI selected)
 	3.	Hosting Environment:
 		- Lagoon
 		- Acquia
+	4.	Scripts and .twig_cs.php Update
+	5.	Final Review of Changes
+	6.	Installation Summary
 	-	File-specific questions will include:
 	-	Whether to override an existing file based on detected version differences.
 	-	Initial installations will provide contextual prompts if version metadata is missing.
@@ -32,10 +36,10 @@
    
    - File Processing:
      - Version checking for existing files
-     - Automatic backup creation for overwritten files
      - Non-interactive mode for automated installations
      - Proper error handling and reporting
      - GitHub download error handling
+     - Automatic execute permissions for .sh files
 
 3. Testing Environment
    - Docker-based Testing:
@@ -58,7 +62,7 @@
        - Acquia
      - Installation Types:
        - Normal installation
-       - Force installation with backups
+       - Force installation
 
    - Test Process:
      - Clean environment before each test
@@ -79,7 +83,9 @@
    │       └── lagoon/            # Lagoon-specific config
    ├── scripts/                   # Scripts directory
    ├── renovatebot/
-   │   └── drupal/                # Drupal-specific Renovate config
+   │   ├── drupal/                # Drupal-specific Renovate config
+   │   │   └── renovate.json
+   │   └── govcms_paas/          # GovCMS PaaS Renovate config
    │       └── renovate.json
    ├── scaffold-installer.php     # Main installer script
    ├── Dockerfile.test           # Testing environment setup
@@ -104,6 +110,8 @@
    --use-local-files    Use local files instead of GitHub
    --github-repo        Custom GitHub repository
    --github-branch      Custom GitHub branch
+   --distribution       Distribution type (drupal|govcms_paas)
+   --ssh-fingerprint    SSH key fingerprint for CircleCI
    ```
 
 6. Testing Commands
@@ -134,7 +142,6 @@
    - Validation of source and target directories
    - Exit codes for test failures
    - Colored output for errors and successes
-   - Backup creation before file modifications
    - GitHub download error handling
    - cURL error handling for GitHub requests
 

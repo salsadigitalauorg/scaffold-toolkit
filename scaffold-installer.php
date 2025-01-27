@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.15';
+    private string $version = '1.0.16';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -34,6 +34,18 @@ class ScaffoldInstaller {
     private array $savedValues = [];
     private string $configFile;
     private string $installerDir;
+    private ?string $lagoonCluster = null;
+    private array $lagoonEnvVars = [
+        'LAGOON_WEBHOOK_ENDPOINT' => 'https://webhookhandler.salsa.hosting/',
+        'DREVOPS_DEPLOY_LAGOON_INSTANCE' => 'salsa',
+        'DREVOPS_DEPLOY_LAGOON_INSTANCE_GRAPHQL' => 'https://api.salsa.hosting/graphql',
+        'DREVOPS_DEPLOY_LAGOON_INSTANCE_HOSTNAME' => 'ssh.salsa.hosting',
+        'DREVOPS_DB_DOWNLOAD_LAGOON_SSH_HOST' => 'ssh.salsa.hosting',
+        'DREVOPS_TASK_LAGOON_INSTANCE_HOSTNAME' => 'ssh.salsa.hosting',
+        'DREVOPS_DEPLOY_LAGOON_INSTANCE_PORT' => '22',
+        'DREVOPS_DB_DOWNLOAD_LAGOON_SSH_PORT' => '22',
+        'DREVOPS_TASK_LAGOON_INSTANCE_PORT' => '22'
+    ];
 
     private const GREEN = "\033[32m";
     private const BLUE = "\033[34m";
@@ -114,6 +126,7 @@ class ScaffoldInstaller {
             'ci_type' => $this->ciType,
             'hosting_type' => $this->hostingType,
             'ssh_fingerprint' => $this->sshFingerprint,
+            'lagoon_cluster' => $this->lagoonCluster,
         ];
 
         if (file_put_contents($this->configFile, json_encode($values, JSON_PRETTY_PRINT)) === false) {
@@ -428,10 +441,87 @@ class ScaffoldInstaller {
             
             if ($choice === '' && isset($this->savedValues['hosting_type'])) {
                 $this->hostingType = $this->savedValues['hosting_type'];
+                if ($this->hostingType === 'lagoon') {
+                    $this->selectLagoonCluster();
+                }
                 return;
             }
             
             $this->hostingType = $choice === '1' ? 'lagoon' : 'acquia';
+            
+            if ($this->hostingType === 'lagoon') {
+                $this->selectLagoonCluster();
+            }
+        }
+    }
+
+    /**
+     * Select Lagoon cluster and handle environment variables.
+     */
+    private function selectLagoonCluster(): void {
+        if ($this->nonInteractive) {
+            if (isset($this->savedValues['lagoon_cluster'])) {
+                $this->lagoonCluster = $this->savedValues['lagoon_cluster'];
+            }
+            return;
+        }
+
+        echo "\nSelect Lagoon cluster:\n";
+        echo "1. SalsaDigital\n";
+        echo "2. Other\n";
+
+        if (isset($this->savedValues['lagoon_cluster'])) {
+            echo "\nPreviously used: " . $this->colorize($this->savedValues['lagoon_cluster']) . "\n";
+            echo "Press Enter to use the previous value, or select a new option: ";
+        }
+
+        $choice = trim(fgets(STDIN));
+
+        if ($choice === '' && isset($this->savedValues['lagoon_cluster'])) {
+            $this->lagoonCluster = $this->savedValues['lagoon_cluster'];
+        } else {
+            $this->lagoonCluster = $choice === '1' ? 'salsadigital' : 'other';
+        }
+
+        if ($this->lagoonCluster === 'salsadigital') {
+            $this->updateEnvFile();
+        }
+    }
+
+    /**
+     * Update .env file with Lagoon variables.
+     */
+    private function updateEnvFile(): void {
+        $envFile = $this->targetDir . '/.env';
+        $content = file_exists($envFile) ? file_get_contents($envFile) : '';
+        $content = $content ?: '';
+        $updatedVars = [];
+
+        // Check which variables need to be added
+        foreach ($this->lagoonEnvVars as $key => $value) {
+            if (!preg_match("/^{$key}=/m", $content)) {
+                $updatedVars[$key] = $value;
+            }
+        }
+
+        if (!empty($updatedVars)) {
+            // Add comment if there are new variables
+            if (!str_contains($content, '# Lagoon variables')) {
+                $content .= "\n# Lagoon variables\n";
+            }
+
+            // Add missing variables
+            foreach ($updatedVars as $key => $value) {
+                $content .= "{$key}={$value}\n";
+            }
+
+            // Save the file
+            if (file_put_contents($envFile, $content) === false) {
+                throw new \RuntimeException("Failed to update .env file");
+            }
+
+            $this->changedFiles[] = '.env';
+            echo "Updated .env file with Lagoon variables\n";
         }
     }
 
