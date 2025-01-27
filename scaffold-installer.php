@@ -563,6 +563,12 @@ class ScaffoldInstaller {
         // Always create renovatebot directory
         $directories[] = 'renovatebot';
 
+        // Always create .github directory and its subdirectories
+        $directories[] = '.github';
+        $directories[] = '.github/workflows';
+        $directories[] = '.github/ISSUE_TEMPLATE';
+        $directories[] = '.github/PULL_REQUEST_TEMPLATE';
+
         foreach ($directories as $dir) {
             $targetDir = $this->targetDir . '/' . $dir;
             if (!is_dir($targetDir)) {
@@ -607,6 +613,22 @@ class ScaffoldInstaller {
             'source' => "renovatebot/{$this->distributionType}/renovate.json",
             'target' => 'renovate.json',
         ];
+
+        // GitHub files are always installed
+        $githubFiles = [
+            '.github/release-drafter.yml',
+            '.github/workflows/assign-author.yml',
+            '.github/workflows/draft-release-notes.yml',
+            '.github/workflows/label-merge-conflict.yml',
+            '.github/workflows/release.yml',
+        ];
+
+        foreach ($githubFiles as $file) {
+            $files[] = [
+                'source' => $file,
+                'target' => $file,
+            ];
+        }
 
         return $files;
     }
@@ -1110,7 +1132,7 @@ EOD;
         if (!empty($this->changedFiles)) {
             echo "\nChanged files:\n";
             foreach ($this->changedFiles as $file) {
-                echo "- {$file}\n";
+                echo $this->colorize("- {$file}", self::BLUE) . "\n";
             }
         }
 
