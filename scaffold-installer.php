@@ -33,6 +33,7 @@ class ScaffoldInstaller {
     private array $changedFiles = [];
     private array $savedValues = [];
     private string $configFile;
+    private string $installerDir;
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -40,12 +41,12 @@ class ScaffoldInstaller {
         $this->nonInteractive = isset($options['non-interactive']);
         $this->ciType = $options['ci'] ?? null;
         $this->hostingType = $options['hosting'] ?? null;
-        $this->sourceDir = $options['source-dir'] ?? '.';
         $this->targetDir = $options['target-dir'] ?? '.';
         $this->useLocalFiles = isset($options['use-local-files']);
         $this->scaffoldType = $options['scaffold'] ?? null;
         $this->sshFingerprint = $options['ssh-fingerprint'] ?? null;
         $this->configFile = $this->targetDir . '/.scaffold-toolkit.json';
+        $this->installerDir = $this->targetDir . '/.scaffold-installer';
         
         if (isset($options['version'])) {
             $this->version = $options['version'];
@@ -117,6 +118,14 @@ class ScaffoldInstaller {
     public function run(): void {
         $this->printHeader();
         $this->validateEnvironment();
+
+        // Download repository
+        $this->downloadRepository();
+
+        // Set source directory to the downloaded repository
+        $this->sourceDir = $this->installerDir;
+        $this->useLocalFiles = true;
+
         $this->selectScaffoldType();
         $this->selectCiType();
         $this->selectHostingType();
@@ -125,18 +134,16 @@ class ScaffoldInstaller {
             $this->sshFingerprint = $this->promptSshFingerprint();
         }
 
-        // Ask about scripts directory and twig_cs.php update
         if (!$this->nonInteractive) {
             $this->promptScriptsUpdate();
         }
         
-        // Show final review of changes
         if (!$this->nonInteractive && !$this->confirmChanges()) {
+            $this->cleanup();
             echo "Installation cancelled.\n";
             exit(1);
         }
         
-        // Validate existing files before making any changes
         $this->validateExistingFiles();
         
         if (!$this->dryRun) {
@@ -146,15 +153,95 @@ class ScaffoldInstaller {
         $this->ensureDirectoriesExist();
         $this->installFiles();
 
-        // Handle scripts directory and twig_cs.php if requested
         if ($this->shouldUpdateScripts) {
             $this->updateScriptsAndTwigCs();
         }
 
-        // Save current values
         $this->saveValues();
-
         $this->printSummary();
+        $this->cleanup();
+    }
+
+    /**
+     * Download the repository into a local directory.
+     */
+    private function downloadRepository(): void {
+        echo "Downloading scaffold files...\n";
+
+        // Create installer directory if it doesn't exist
+        if (!is_dir($this->installerDir)) {
+            if (!mkdir($this->installerDir, 0755, true)) {
+                throw new \RuntimeException("Failed to create installer directory: {$this->installerDir}");
+            }
+        }
+
+        // Download repository archive
+        $url = sprintf(
+            'https://api.github.com/repos/%s/tarball/%s',
+            $this->githubRepo,
+            $this->githubBranch
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+        
+        $tarball = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$tarball) {
+            throw new \RuntimeException("Failed to download repository archive");
+        }
+
+        // Save tarball to a temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'scaffold_');
+        if (!file_put_contents($tempFile, $tarball)) {
+            throw new \RuntimeException("Failed to save repository archive");
+        }
+
+        // Extract tarball
+        $phar = new \PharData($tempFile);
+        $phar->extractTo($this->installerDir, null, true); // Extract and overwrite
+
+        // The archive creates a subdirectory with a generated name, move all files up
+        $extractedDir = glob($this->installerDir . '/*', GLOB_ONLYDIR)[0];
+        $extractedDirLen = strlen($extractedDir) + 1;
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractedDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $relativePath = substr($item->getPathname(), $extractedDirLen);
+            $target = $this->installerDir . DIRECTORY_SEPARATOR . $relativePath;
+            
+            if ($item->isDir()) {
+                if (!is_dir($target)) {
+                    mkdir($target);
+                }
+            } else {
+                copy($item, $target);
+            }
+        }
+
+        // Clean up
+        $this->removeDirectory($extractedDir);
+        unlink($tempFile);
+
+        echo "Downloaded scaffold files successfully.\n\n";
+    }
+
+    /**
+     * Clean up temporary files.
+     */
+    private function cleanup(): void {
+        if (is_dir($this->installerDir)) {
+            $this->removeDirectory($this->installerDir);
+        }
     }
 
     /**
