@@ -715,6 +715,15 @@ class ScaffoldInstaller {
         $tempDir = sys_get_temp_dir() . '/' . uniqid('scaffold_', true);
         mkdir($tempDir);
 
+        $this->downloadDirectoryRecursive($dir, $tempDir);
+
+        return $tempDir;
+    }
+
+    /**
+     * Download a directory and its contents recursively from GitHub.
+     */
+    private function downloadDirectoryRecursive(string $dir, string $targetDir): void {
         // Use GitHub API to get directory contents
         $url = sprintf(
             'https://api.github.com/repos/%s/contents/%s?ref=%s',
@@ -734,25 +743,49 @@ class ScaffoldInstaller {
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new \RuntimeException("Failed to get directory listing from GitHub");
+            throw new \RuntimeException("Failed to get directory listing from GitHub for {$dir}");
         }
 
         $files = json_decode($response, true);
         if (!is_array($files)) {
-            throw new \RuntimeException("Invalid response from GitHub");
+            throw new \RuntimeException("Invalid response from GitHub for {$dir}");
         }
 
         foreach ($files as $file) {
-            $path = $tempDir . '/' . $file['name'];
-            if ($file['type'] === 'file') {
-                $content = $this->getFileContent($dir . '/' . $file['name']);
-                if ($content === false || !file_put_contents($path, $content)) {
-                    throw new \RuntimeException("Failed to download file: {$file['name']}");
+            $relativePath = $file['path'];
+            $targetPath = $targetDir . '/' . basename($relativePath);
+
+            if ($file['type'] === 'dir') {
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0755, true);
+                }
+                $this->downloadDirectoryRecursive($relativePath, $targetPath);
+            } else {
+                // For files, we can use the download_url directly from the GitHub API response
+                $downloadUrl = $file['download_url'];
+                if (!$downloadUrl) {
+                    throw new \RuntimeException("No download URL available for file: {$relativePath}");
+                }
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $downloadUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+                
+                $content = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpCode !== 200 || $content === false) {
+                    throw new \RuntimeException("Failed to download file: {$relativePath}");
+                }
+
+                if (!file_put_contents($targetPath, $content)) {
+                    throw new \RuntimeException("Failed to write file: {$targetPath}");
                 }
             }
         }
-
-        return $tempDir;
     }
 
     /**
