@@ -1099,10 +1099,13 @@ EOD;
         $separator = $this->colorize("===================", self::BLUE);
         echo "\n{$summaryTitle}\n";
         echo "{$separator}\n";
-        echo "Scaffold Type: " . ucfirst($this->scaffoldType) . "\n";
-        echo "CI/CD Type: " . ucfirst($this->ciType) . "\n";
-        echo "Hosting: " . ucfirst($this->hostingType) . "\n";
-        echo "Mode: " . ($this->dryRun ? 'Dry Run' : 'Live') . "\n";
+        echo $this->colorize("Scaffold Type: " . ucfirst($this->scaffoldType), self::BLUE) . "\n";
+        echo $this->colorize("CI/CD Type: " . ucfirst($this->ciType), self::BLUE) . "\n";
+        echo $this->colorize("Hosting: " . ucfirst($this->hostingType), self::BLUE) . "\n";
+        if ($this->hostingType === 'lagoon' && $this->lagoonCluster) {
+            echo $this->colorize("Lagoon Cluster: " . ucfirst($this->lagoonCluster), self::BLUE) . "\n";
+        }
+        echo $this->colorize("Mode: " . ($this->dryRun ? 'Dry Run' : 'Live'), self::BLUE) . "\n";
         
         if (!empty($this->changedFiles)) {
             echo "\nChanged files:\n";
