@@ -36,10 +36,11 @@ class ScaffoldInstaller {
     private string $installerDir;
 
     private const GREEN = "\033[32m";
+    private const BLUE = "\033[34m";
     private const RESET = "\033[0m";
 
-    private function colorize(string $text): string {
-        return self::GREEN . $text . self::RESET;
+    private function colorize(string $text, string $color = self::GREEN): string {
+        return $color . $text . self::RESET;
     }
 
     public function __construct(array $options = []) {
@@ -1004,8 +1005,10 @@ EOD;
      * Print installation summary.
      */
     private function printSummary(): void {
-        echo "\nInstallation Summary\n";
-        echo "===================\n";
+        $summaryTitle = $this->colorize("Installation Summary", self::BLUE);
+        $separator = $this->colorize("===================", self::BLUE);
+        echo "\n{$summaryTitle}\n";
+        echo "{$separator}\n";
         echo "Scaffold Type: " . ucfirst($this->scaffoldType) . "\n";
         echo "CI/CD Type: " . ucfirst($this->ciType) . "\n";
         echo "Hosting: " . ucfirst($this->hostingType) . "\n";
