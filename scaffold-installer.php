@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.18';
+    private string $version = '1.0.19';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -49,6 +49,7 @@ class ScaffoldInstaller {
 
     private const GREEN = "\033[32m";
     private const BLUE = "\033[34m";
+    private const DARK_ORANGE = "\033[38;5;208m";
     private const RESET = "\033[0m";
 
     private function colorize(string $text, string $color = self::GREEN): string {
@@ -280,8 +281,8 @@ class ScaffoldInstaller {
      * Print the installer header.
      */
     private function printHeader(): void {
-        echo "Scaffold Toolkit Installer v{$this->version}\n";
-        echo "=====================================\n\n";
+        echo $this->colorize("Scaffold Toolkit Installer v{$this->version}", self::DARK_ORANGE) . "\n";
+        echo $this->colorize("=====================================", self::DARK_ORANGE) . "\n\n";
     }
 
     /**
@@ -298,6 +299,77 @@ class ScaffoldInstaller {
     }
 
     /**
+     * Handle arrow key selection.
+     */
+    private function arrowKeySelect(array $options, ?string $default = null, string $prompt = ''): string {
+        if (empty($options)) {
+            throw new \RuntimeException('No options provided for selection.');
+        }
+
+        // Convert options array to indexed array if associative
+        $choices = array_values($options);
+        $currentSelection = 0;
+
+        // If default value is provided, find its index
+        if ($default !== null) {
+            foreach ($choices as $index => $choice) {
+                if (strtolower($choice) === strtolower($default)) {
+                    $currentSelection = $index;
+                    break;
+                }
+            }
+        }
+
+        // Print the prompt if provided
+        if (!empty($prompt)) {
+            echo $prompt . "\n";
+        }
+
+        // Function to render options
+        $renderOptions = function($currentSelection) use ($choices, $default) {
+            echo "\033[" . count($choices) . "A\r"; // Move cursor up
+            foreach ($choices as $index => $choice) {
+                $prefix = ($index === $currentSelection) ? '→ ' : '  ';
+                $text = $choice;
+                
+                // Color the text if it's selected or is the default
+                if ($index === $currentSelection) {
+                    $text = $this->colorize($text);
+                } elseif ($default !== null && strtolower($choice) === strtolower($default)) {
+                    $text = $this->colorize($text, self::BLUE);
+                }
+                
+                echo $prefix . $text . "\n";
+            }
+        };
+
+        // Print initial options
+        foreach ($choices as $choice) {
+            echo "  " . $choice . "\n";
+        }
+
+        // Handle key input
+        system('stty -icanon');
+        while (true) {
+            $renderOptions($currentSelection);
+            
+            $key = fread(STDIN, 3);
+            switch ($key) {
+                case "\033[A": // Up arrow
+                    $currentSelection = ($currentSelection > 0) ? $currentSelection - 1 : count($choices) - 1;
+                    break;
+                case "\033[B": // Down arrow
+                    $currentSelection = ($currentSelection < count($choices) - 1) ? $currentSelection + 1 : 0;
+                    break;
+                case "\n": // Enter
+                    system('stty icanon');
+                    echo "\n";
+                    return $choices[$currentSelection];
+            }
+        }
+    }
+
+    /**
      * Select the scaffold type.
      */
     private function selectScaffoldType(): void {
@@ -307,40 +379,24 @@ class ScaffoldInstaller {
             }
 
             $options = [
-                '1' => 'DrevOps',
-                '2' => 'Vortex (coming soon)',
-                '3' => 'GovCMS PaaS (coming soon)'
+                'DrevOps',
+                'Vortex (coming soon)',
+                'GovCMS PaaS (coming soon)'
             ];
 
+            $default = isset($this->savedValues['scaffold_type']) ? ucfirst($this->savedValues['scaffold_type']) : 'DrevOps';
+            
             echo "Select scaffold type:\n";
-            foreach ($options as $key => $option) {
-                $text = $option;
-                if (isset($this->savedValues['scaffold_type']) && strtolower($option) === $this->savedValues['scaffold_type']) {
-                    $text = $this->colorize($option);
-                }
-                echo "{$key}. {$text}\n";
-            }
-            
-            if (isset($this->savedValues['scaffold_type'])) {
-                echo "\nPreviously used: " . $this->colorize($this->savedValues['scaffold_type']) . "\n";
-                echo "Press Enter to use the previous value, or select a new option: ";
-            }
-            
-            $choice = trim(fgets(STDIN));
-            
-            if ($choice === '' && isset($this->savedValues['scaffold_type'])) {
-                $this->scaffoldType = $this->savedValues['scaffold_type'];
-                return;
-            }
+            $choice = $this->arrowKeySelect($options, $default);
             
             switch ($choice) {
-                case '1':
+                case 'DrevOps':
                     $this->scaffoldType = 'drevops';
                     break;
-                case '2':
+                case 'Vortex (coming soon)':
                     echo "\nNOTE: Vortex scaffolding is not yet available.\n";
                     exit(1);
-                case '3':
+                case 'GovCMS PaaS (coming soon)':
                     echo "\nNOTE: GovCMS PaaS scaffolding is not yet available.\n";
                     exit(1);
                 default:
@@ -363,32 +419,16 @@ class ScaffoldInstaller {
             }
 
             $options = [
-                '1' => 'CircleCI',
-                '2' => 'GitHub Actions (Coming soon)'
+                'CircleCI',
+                'GitHub Actions (Coming soon)'
             ];
 
+            $default = isset($this->savedValues['ci_type']) ? ucfirst($this->savedValues['ci_type']) : 'CircleCI';
+            
             echo "Select CI/CD integration:\n";
-            foreach ($options as $key => $option) {
-                $text = $option;
-                if (isset($this->savedValues['ci_type']) && strtolower(explode(' ', $option)[0]) === $this->savedValues['ci_type']) {
-                    $text = $this->colorize($option);
-                }
-                echo "{$key}. {$text}\n";
-            }
+            $choice = $this->arrowKeySelect($options, $default);
             
-            if (isset($this->savedValues['ci_type'])) {
-                echo "\nPreviously used: " . $this->colorize($this->savedValues['ci_type']) . "\n";
-                echo "Press Enter to use the previous value, or select a new option: ";
-            }
-            
-            $choice = trim(fgets(STDIN));
-            
-            if ($choice === '' && isset($this->savedValues['ci_type'])) {
-                $this->ciType = $this->savedValues['ci_type'];
-                return;
-            }
-            
-            if ($choice === '2') {
+            if ($choice === 'GitHub Actions (Coming soon)') {
                 echo "\nNOTE: GitHub Actions integration is not yet available.\n";
                 echo "Only CircleCI is currently supported.\n\n";
                 echo "Would you like to proceed with CircleCI instead? [Y/n] ";
@@ -419,35 +459,16 @@ class ScaffoldInstaller {
             }
 
             $options = [
-                '1' => 'Lagoon',
-                '2' => 'Acquia'
+                'Lagoon',
+                'Acquia'
             ];
 
+            $default = isset($this->savedValues['hosting_type']) ? ucfirst($this->savedValues['hosting_type']) : 'Lagoon';
+            
             echo "Select hosting environment:\n";
-            foreach ($options as $key => $option) {
-                $text = $option;
-                if (isset($this->savedValues['hosting_type']) && strtolower($option) === $this->savedValues['hosting_type']) {
-                    $text = $this->colorize($option);
-                }
-                echo "{$key}. {$text}\n";
-            }
+            $choice = $this->arrowKeySelect($options, $default);
             
-            if (isset($this->savedValues['hosting_type'])) {
-                echo "\nPreviously used: " . $this->colorize($this->savedValues['hosting_type']) . "\n";
-                echo "Press Enter to use the previous value, or select a new option: ";
-            }
-            
-            $choice = trim(fgets(STDIN));
-            
-            if ($choice === '' && isset($this->savedValues['hosting_type'])) {
-                $this->hostingType = $this->savedValues['hosting_type'];
-                if ($this->hostingType === 'lagoon') {
-                    $this->selectLagoonCluster();
-                }
-                return;
-            }
-            
-            $this->hostingType = $choice === '1' ? 'lagoon' : 'acquia';
+            $this->hostingType = strtolower($choice);
             
             if ($this->hostingType === 'lagoon') {
                 $this->selectLagoonCluster();
@@ -466,22 +487,17 @@ class ScaffoldInstaller {
             return;
         }
 
+        $options = [
+            'SalsaDigital',
+            'Other'
+        ];
+
+        $default = isset($this->savedValues['lagoon_cluster']) ? ucfirst($this->savedValues['lagoon_cluster']) : 'SalsaDigital';
+        
         echo "\nSelect Lagoon cluster:\n";
-        echo "1. SalsaDigital\n";
-        echo "2. Other\n";
-
-        if (isset($this->savedValues['lagoon_cluster'])) {
-            echo "\nPreviously used: " . $this->colorize($this->savedValues['lagoon_cluster']) . "\n";
-            echo "Press Enter to use the previous value, or select a new option: ";
-        }
-
-        $choice = trim(fgets(STDIN));
-
-        if ($choice === '' && isset($this->savedValues['lagoon_cluster'])) {
-            $this->lagoonCluster = $this->savedValues['lagoon_cluster'];
-        } else {
-            $this->lagoonCluster = $choice === '1' ? 'salsadigital' : 'other';
-        }
+        $choice = $this->arrowKeySelect($options, $default);
+        
+        $this->lagoonCluster = strtolower($choice === 'SalsaDigital' ? 'salsadigital' : 'other');
 
         if ($this->lagoonCluster === 'salsadigital') {
             $this->updateEnvFile();
