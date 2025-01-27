@@ -177,7 +177,7 @@ class ScaffoldInstaller {
 
         // Download repository archive
         $url = sprintf(
-            'https://api.github.com/repos/%s/tarball/%s',
+            'https://api.github.com/repos/%s/contents?ref=%s',
             $this->githubRepo,
             $this->githubBranch
         );
@@ -187,50 +187,50 @@ class ScaffoldInstaller {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/vnd.github.v3+json']);
         
-        $tarball = curl_exec($ch);
+        $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode !== 200 || !$tarball) {
-            throw new \RuntimeException("Failed to download repository archive");
+        if ($httpCode !== 200 || !$response) {
+            throw new \RuntimeException("Failed to get repository contents (HTTP {$httpCode})");
         }
 
-        // Save tarball to a temporary file
-        $tempFile = tempnam(sys_get_temp_dir(), 'scaffold_');
-        if (!file_put_contents($tempFile, $tarball)) {
-            throw new \RuntimeException("Failed to save repository archive");
+        $files = json_decode($response, true);
+        if (!is_array($files)) {
+            throw new \RuntimeException("Invalid response from GitHub");
         }
 
-        // Extract tarball
-        $phar = new \PharData($tempFile);
-        $phar->extractTo($this->installerDir, null, true); // Extract and overwrite
-
-        // The archive creates a subdirectory with a generated name, move all files up
-        $extractedDir = glob($this->installerDir . '/*', GLOB_ONLYDIR)[0];
-        $extractedDirLen = strlen($extractedDir) + 1;
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($extractedDir, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        foreach ($iterator as $item) {
-            $relativePath = substr($item->getPathname(), $extractedDirLen);
-            $target = $this->installerDir . DIRECTORY_SEPARATOR . $relativePath;
-            
-            if ($item->isDir()) {
-                if (!is_dir($target)) {
-                    mkdir($target);
-                }
+        // Download each file/directory
+        foreach ($files as $file) {
+            if ($file['type'] === 'dir') {
+                $this->downloadDirectoryRecursive($file['path'], $this->installerDir . '/' . $file['name']);
             } else {
-                copy($item, $target);
+                $targetPath = $this->installerDir . '/' . $file['name'];
+                
+                // Download the file
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $file['download_url']);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+                
+                $content = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpCode !== 200 || $content === false) {
+                    throw new \RuntimeException("Failed to download file: {$file['path']} (HTTP {$httpCode})");
+                }
+
+                if (file_put_contents($targetPath, $content) === false) {
+                    throw new \RuntimeException("Failed to write file: {$targetPath}");
+                }
+
+                chmod($targetPath, 0644);
             }
         }
-
-        // Clean up
-        $this->removeDirectory($extractedDir);
-        unlink($tempFile);
 
         echo "Downloaded scaffold files successfully.\n\n";
     }
