@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.6';
+    private string $version = '1.0.7';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -497,7 +497,7 @@ class ScaffoldInstaller {
         // CI/CD configuration files
         if ($this->ciType === 'circleci') {
             $files[] = [
-                'source' => ".scaffold-installer/ci/circleci/{$this->hostingType}/config.yml",
+                'source' => ".scaffold-installer/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
         }
@@ -607,9 +607,10 @@ class ScaffoldInstaller {
      */
     private function getFileContent(string $sourcePath): string|false {
         if ($this->useLocalFiles) {
-            $localPath = $this->sourceDir . '/' . $sourcePath;
+            // For local files, we need to strip the .scaffold-installer prefix since files are already in that directory
+            $localPath = $this->installerDir . '/' . preg_replace('/^\.scaffold-installer\//', '', $sourcePath);
             if (!file_exists($localPath)) {
-                return false;
+                throw new \RuntimeException("Local file not found: {$localPath}");
             }
             return file_get_contents($localPath);
         }
