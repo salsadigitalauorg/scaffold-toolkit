@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.9';
+    private string $version = '1.0.10';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -28,6 +28,7 @@ class ScaffoldInstaller {
     private string $githubRepo = 'salsadigitalauorg/scaffold-toolkit';
     private string $githubBranch = 'main';
     private ?string $scaffoldType = null;
+    private ?string $distributionType = null;
     private ?string $sshFingerprint = null;
     private bool $shouldUpdateScripts = false;
     private array $changedFiles = [];
@@ -44,6 +45,7 @@ class ScaffoldInstaller {
         $this->targetDir = $options['target-dir'] ?? '.';
         $this->useLocalFiles = isset($options['use-local-files']);
         $this->scaffoldType = $options['scaffold'] ?? null;
+        $this->distributionType = $options['distribution'] ?? 'drupal';
         $this->sshFingerprint = $options['ssh-fingerprint'] ?? null;
         $this->configFile = $this->targetDir . '/.scaffold-toolkit.json';
         $this->installerDir = $this->targetDir . '/.scaffold-installer';
@@ -510,7 +512,7 @@ class ScaffoldInstaller {
 
         // RenovateBot configuration is always installed
         $files[] = [
-            'source' => "renovatebot/{$this->scaffoldType}/renovate.json",
+            'source' => "renovatebot/{$this->distributionType}/renovate.json",
             'target' => 'renovate.json',
         ];
 
@@ -1099,6 +1101,7 @@ $options = getopt('', [
     'github-repo:',
     'github-branch:',
     'scaffold:',
+    'distribution:',
     'ssh-fingerprint:'
 ]);
 

@@ -147,4 +147,4 @@
 
 # File version tracking
 Aleays increment version in the installer script and in this file.
-scaffold-installer.php=1.0.7
+scaffold-installer.php=1.0.10
