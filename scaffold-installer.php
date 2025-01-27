@@ -864,7 +864,7 @@ class ScaffoldInstaller {
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new \RuntimeException("Failed to get directory listing from GitHub for {$dir}");
+            throw new \RuntimeException("Failed to get directory listing from GitHub for {$dir} (HTTP {$httpCode})");
         }
 
         $files = json_decode($response, true);
@@ -872,32 +872,28 @@ class ScaffoldInstaller {
             throw new \RuntimeException("Invalid response from GitHub for {$dir}");
         }
 
+        // Ensure the target directory exists
+        if (!file_exists($targetDir)) {
+            if (!mkdir($targetDir, 0755, true)) {
+                throw new \RuntimeException("Failed to create directory: {$targetDir}");
+            }
+        }
+
         foreach ($files as $file) {
-            // Get the relative path from the base directory
-            $relativePath = substr($file['path'], strlen($dir));
-            $relativePath = ltrim($relativePath, '/');
-            $targetPath = $targetDir . '/' . $relativePath;
+            $targetPath = $targetDir . '/' . basename($file['path']);
 
             if ($file['type'] === 'dir') {
-                if (!is_dir($targetPath)) {
+                if (!file_exists($targetPath)) {
                     if (!mkdir($targetPath, 0755, true)) {
                         throw new \RuntimeException("Failed to create directory: {$targetPath}");
                     }
                 }
                 $this->downloadDirectoryRecursive($file['path'], $targetPath);
             } else {
-                // For files, we can use the download_url directly from the GitHub API response
+                // For files, download directly from the download_url
                 $downloadUrl = $file['download_url'];
                 if (!$downloadUrl) {
                     throw new \RuntimeException("No download URL available for file: {$file['path']}");
-                }
-
-                // Ensure the target directory exists
-                $targetDir = dirname($targetPath);
-                if (!is_dir($targetDir)) {
-                    if (!mkdir($targetDir, 0755, true)) {
-                        throw new \RuntimeException("Failed to create directory: {$targetDir}");
-                    }
                 }
 
                 $ch = curl_init();
@@ -911,12 +907,15 @@ class ScaffoldInstaller {
                 curl_close($ch);
 
                 if ($httpCode !== 200 || $content === false) {
-                    throw new \RuntimeException("Failed to download file: {$file['path']}");
+                    throw new \RuntimeException("Failed to download file: {$file['path']} (HTTP {$httpCode})");
                 }
 
-                if (!file_put_contents($targetPath, $content)) {
+                if (file_put_contents($targetPath, $content) === false) {
                     throw new \RuntimeException("Failed to write file: {$targetPath}");
                 }
+
+                // Set proper permissions for the file
+                chmod($targetPath, 0644);
             }
         }
     }
