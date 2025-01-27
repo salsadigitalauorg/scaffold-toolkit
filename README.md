@@ -41,6 +41,9 @@ The installer will prompt you for:
 2. CI/CD integration selection
 3. Hosting environment selection
 4. SSH key fingerprint (for CircleCI)
+5. Scripts directory and .twig_cs.php update confirmation
+
+The installer will show a final review of all changes and ask for confirmation before proceeding.
 
 ### Non-Interactive Mode
 Specify all required options for automated installation:
@@ -94,6 +97,17 @@ DREVOPS_CI_NPM_LINT_IGNORE_FAILURE=1    # NPM linting
 - **Dry Run Mode**: Use `--dry-run` to simulate changes without modifying files
 - **Backup Creation**: Automatic backups of existing files before modification (format: filename.bak.YYYY-MM-DD-His)
 - **Overwrite Protection**: By default, won't overwrite existing files. Use `--force` for overwriting with backups
+- **Final Review**: Shows all changes that will be made and requires confirmation before proceeding
+- **Scripts Protection**: Creates backups of existing scripts directory and .twig_cs.php file before updating
+
+### Important Notes
+
+The installer can update your project's `scripts` directory and `.twig_cs.php` file. This is recommended as the tooling depends on certain versions of DrevOps scaffold, and missing this step may trigger broken pipelines. The installer will:
+
+1. Create backups of existing files
+2. Replace the `scripts` directory with the latest version
+3. Update `.twig_cs.php` file
+4. Show a summary of all changes made
 
 ### Examples
 

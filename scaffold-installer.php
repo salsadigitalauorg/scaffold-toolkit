@@ -29,6 +29,8 @@ class ScaffoldInstaller {
     private string $githubBranch = 'main';
     private ?string $scaffoldType = null;
     private ?string $sshFingerprint = null;
+    private bool $shouldUpdateScripts = false;
+    private array $changedFiles = [];
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -68,6 +70,17 @@ class ScaffoldInstaller {
         if ($this->ciType === 'circleci' && !$this->sshFingerprint) {
             $this->sshFingerprint = $this->promptSshFingerprint();
         }
+
+        // Ask about scripts directory and twig_cs.php update
+        if (!$this->nonInteractive) {
+            $this->promptScriptsUpdate();
+        }
+        
+        // Show final review of changes
+        if (!$this->nonInteractive && !$this->confirmChanges()) {
+            echo "Installation cancelled.\n";
+            exit(1);
+        }
         
         // Validate existing files before making any changes
         $this->validateExistingFiles();
@@ -78,6 +91,12 @@ class ScaffoldInstaller {
         
         $this->ensureDirectoriesExist();
         $this->installFiles();
+
+        // Handle scripts directory and twig_cs.php if requested
+        if ($this->shouldUpdateScripts) {
+            $this->updateScriptsAndTwigCs();
+        }
+
         $this->printSummary();
     }
 
@@ -484,6 +503,190 @@ class ScaffoldInstaller {
     }
 
     /**
+     * Prompt user about updating scripts directory and twig_cs.php.
+     */
+    private function promptScriptsUpdate(): void {
+        echo "\nIMPORTANT: The installer can update your scripts directory and .twig_cs.php file.\n";
+        echo "This is recommended as the tooling depends on certain versions of DrevOps scaffold.\n";
+        echo "Missing this step may trigger broken pipelines.\n\n";
+        echo "Would you like to proceed with updating scripts directory and .twig_cs.php? [Y/n] ";
+        
+        $answer = trim(fgets(STDIN)) ?: 'y';
+        $this->shouldUpdateScripts = strtolower($answer) === 'y';
+    }
+
+    /**
+     * Show final review of changes and get confirmation.
+     */
+    private function confirmChanges(): bool {
+        echo "\nFinal Review of Changes\n";
+        echo "=====================\n";
+        echo "The following changes will be made:\n\n";
+
+        // List CI/CD configuration files
+        if ($this->ciType === 'circleci') {
+            echo "1. Install CircleCI configuration for {$this->hostingType}\n";
+        }
+
+        // List RenovateBot configuration
+        echo "2. Install RenovateBot configuration\n";
+
+        // List scripts and twig_cs.php changes if selected
+        if ($this->shouldUpdateScripts) {
+            echo "3. Replace existing scripts directory with new version\n";
+            echo "4. Update .twig_cs.php file\n";
+        }
+
+        echo "\nWARNING: This operation will create backups of existing files before replacing them.\n";
+        echo "Would you like to proceed with these changes? [y/N] ";
+        
+        $answer = trim(fgets(STDIN)) ?: 'n';
+        return strtolower($answer) === 'y';
+    }
+
+    /**
+     * Update scripts directory and twig_cs.php file.
+     */
+    private function updateScriptsAndTwigCs(): void {
+        // Handle scripts directory
+        $targetScriptsDir = $this->targetDir . '/scripts';
+        if (is_dir($targetScriptsDir)) {
+            $backupScriptsDir = $targetScriptsDir . '.bak.' . date('Y-m-d-His');
+            if (!$this->dryRun) {
+                if (!rename($targetScriptsDir, $backupScriptsDir)) {
+                    throw new \RuntimeException("Failed to backup scripts directory");
+                }
+                $this->backupFiles[] = $backupScriptsDir;
+                echo "Created backup of scripts directory: {$backupScriptsDir}\n";
+            }
+        }
+
+        // Copy new scripts directory
+        if (!$this->dryRun) {
+            $sourceScriptsDir = $this->useLocalFiles 
+                ? $this->sourceDir . '/scripts'
+                : $this->downloadDirectory('scripts');
+            
+            if (!$this->copyDirectory($sourceScriptsDir, $targetScriptsDir)) {
+                throw new \RuntimeException("Failed to copy scripts directory");
+            }
+            $this->changedFiles[] = 'scripts/';
+            echo "Updated scripts directory\n";
+        }
+
+        // Handle .twig_cs.php
+        $targetTwigCs = $this->targetDir . '/.twig_cs.php';
+        if (file_exists($targetTwigCs)) {
+            $backupTwigCs = $targetTwigCs . '.bak.' . date('Y-m-d-His');
+            if (!$this->dryRun) {
+                if (!copy($targetTwigCs, $backupTwigCs)) {
+                    throw new \RuntimeException("Failed to backup .twig_cs.php");
+                }
+                $this->backupFiles[] = $backupTwigCs;
+                echo "Created backup: {$backupTwigCs}\n";
+            }
+        }
+
+        // Copy new .twig_cs.php
+        if (!$this->dryRun) {
+            $sourceTwigCs = $this->useLocalFiles
+                ? $this->sourceDir . '/.twig_cs.php'
+                : $this->getFileContent('.twig_cs.php');
+            
+            if ($sourceTwigCs === false || !file_put_contents($targetTwigCs, $sourceTwigCs)) {
+                throw new \RuntimeException("Failed to copy .twig_cs.php");
+            }
+            $this->changedFiles[] = '.twig_cs.php';
+            echo "Updated .twig_cs.php\n";
+        }
+    }
+
+    /**
+     * Download a directory from GitHub.
+     */
+    private function downloadDirectory(string $dir): string {
+        $tempDir = sys_get_temp_dir() . '/' . uniqid('scaffold_', true);
+        mkdir($tempDir);
+
+        // Use GitHub API to get directory contents
+        $url = sprintf(
+            'https://api.github.com/repos/%s/contents/%s?ref=%s',
+            $this->githubRepo,
+            $dir,
+            $this->githubBranch
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/vnd.github.v3+json']);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            throw new \RuntimeException("Failed to get directory listing from GitHub");
+        }
+
+        $files = json_decode($response, true);
+        if (!is_array($files)) {
+            throw new \RuntimeException("Invalid response from GitHub");
+        }
+
+        foreach ($files as $file) {
+            $path = $tempDir . '/' . $file['name'];
+            if ($file['type'] === 'file') {
+                $content = $this->getFileContent($dir . '/' . $file['name']);
+                if ($content === false || !file_put_contents($path, $content)) {
+                    throw new \RuntimeException("Failed to download file: {$file['name']}");
+                }
+            }
+        }
+
+        return $tempDir;
+    }
+
+    /**
+     * Copy a directory recursively.
+     */
+    private function copyDirectory(string $source, string $dest): bool {
+        if (!is_dir($source)) {
+            return false;
+        }
+
+        if (!is_dir($dest)) {
+            if (!mkdir($dest, 0755, true)) {
+                return false;
+            }
+        }
+
+        $dir = dir($source);
+        while (($entry = $dir->read()) !== false) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $srcPath = $source . '/' . $entry;
+            $destPath = $dest . '/' . $entry;
+
+            if (is_dir($srcPath)) {
+                if (!$this->copyDirectory($srcPath, $destPath)) {
+                    return false;
+                }
+            } else {
+                if (!copy($srcPath, $destPath)) {
+                    return false;
+                }
+            }
+        }
+
+        $dir->close();
+        return true;
+    }
+
+    /**
      * Print installation summary.
      */
     private function printSummary(): void {
@@ -493,6 +696,13 @@ class ScaffoldInstaller {
         echo "CI/CD Type: " . ucfirst($this->ciType) . "\n";
         echo "Hosting: " . ucfirst($this->hostingType) . "\n";
         echo "Mode: " . ($this->dryRun ? 'Dry Run' : 'Live') . "\n";
+        
+        if (!empty($this->changedFiles)) {
+            echo "\nChanged files:\n";
+            foreach ($this->changedFiles as $file) {
+                echo "- {$file}\n";
+            }
+        }
         
         if (!empty($this->backupFiles)) {
             echo "\nBackup files created:\n";
