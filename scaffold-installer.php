@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.1';
+    private string $version = '1.0.2';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -802,12 +802,24 @@ class ScaffoldInstaller {
 
         // Copy new .twig_cs.php
         if (!$this->dryRun) {
-            $sourceTwigCs = $this->useLocalFiles
-                ? $this->sourceDir . '/.twig_cs.php'
-                : $this->getFileContent('.twig_cs.php');
+            $twigCsContent = <<<'EOD'
+<?php
+
+declare(strict_types=1);
+
+use FriendsOfTwig\Twigcs;
+
+return Twigcs\Config\Config::create()
+  ->setName('custom-config')
+  ->setSeverity('error')
+  ->setReporter('console')
+  ->setRuleSet(Twigcs\Ruleset\Official::class)
+  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/web/modules/custom'))
+  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/web/themes/custom'));
+EOD;
             
-            if ($sourceTwigCs === false || !file_put_contents($targetTwigCs, $sourceTwigCs)) {
-                throw new \RuntimeException("Failed to copy .twig_cs.php");
+            if (file_put_contents($targetTwigCs, $twigCsContent) === false) {
+                throw new \RuntimeException("Failed to write .twig_cs.php");
             }
             $this->changedFiles[] = '.twig_cs.php';
             echo "Updated .twig_cs.php\n";
