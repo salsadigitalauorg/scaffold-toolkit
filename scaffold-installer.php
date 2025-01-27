@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.12';
+    private string $version = '1.0.13';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -125,26 +125,33 @@ class ScaffoldInstaller {
         $this->sourceDir = $this->installerDir;
         $this->useLocalFiles = true;
 
+        // 1. Select scaffold type
         $this->selectScaffoldType();
+
+        // 2. Select CI/CD integration
         $this->selectCiType();
-        $this->selectHostingType();
         
+        // 2.1. If CircleCI, prompt for SSH fingerprint
         if ($this->ciType === 'circleci' && !$this->sshFingerprint) {
             $this->sshFingerprint = $this->promptSshFingerprint();
         }
 
+        // 3. Select hosting environment
+        $this->selectHostingType();
+
+        // 4. Scripts and twig_cs.php update prompt
         if (!$this->nonInteractive) {
             $this->promptScriptsUpdate();
         }
-        
+
+        // 5. Final review of changes
         if (!$this->nonInteractive && !$this->confirmChanges()) {
             $this->cleanup();
             echo "Installation cancelled.\n";
             exit(1);
         }
-        
+
         $this->validateExistingFiles();
-        
         $this->ensureDirectoriesExist();
         $this->installFiles();
 
@@ -153,6 +160,8 @@ class ScaffoldInstaller {
         }
 
         $this->saveValues();
+        
+        // 6. Installation summary
         $this->printSummary();
         $this->cleanup();
     }
@@ -398,36 +407,12 @@ class ScaffoldInstaller {
             }
         }
         
-        if (!empty($existingFiles)) {
-            echo "\nThe following files already exist:\n";
-            foreach ($existingFiles as $file) {
-                echo "- {$file}\n";
+        if (!empty($existingFiles) && !$this->force) {
+            if ($this->nonInteractive) {
+                echo "\nError: Files exist and --force option was not used.\n";
+                exit(1);
             }
-            
-            if (!$this->force) {
-                if ($this->nonInteractive) {
-                    echo "\nError: Files exist and --force option was not used.\n";
-                    exit(1);
-                }
-                
-                echo "\nWould you like to overwrite these files? [Y/n] ";
-                $answer = trim(fgets(STDIN)) ?: 'y';
-                if (strtolower($answer) === 'n') {
-                    echo "Installation cancelled.\n";
-                    exit(1);
-                }
-                $this->force = true;
-            }
-            
-            if (!$this->dryRun && !$this->nonInteractive) {
-                echo "\nWARNING: These files will be overwritten.\n";
-                echo "Continue? [Y/n] ";
-                $answer = trim(fgets(STDIN)) ?: 'y';
-                if (strtolower($answer) === 'n') {
-                    echo "Installation cancelled.\n";
-                    exit(1);
-                }
-            }
+            $this->force = true;
         }
     }
 
@@ -716,8 +701,7 @@ class ScaffoldInstaller {
             echo "4. Update .twig_cs.php file\n";
         }
 
-        echo "\nWARNING: This operation will create backups of existing files before replacing them.\n";
-        echo "Would you like to proceed with these changes? [Y/n] ";
+        echo "\nWould you like to proceed with these changes? [Y/n] ";
         
         $answer = trim(fgets(STDIN)) ?: 'y';
         return strtolower($answer) !== 'n';
@@ -730,12 +714,10 @@ class ScaffoldInstaller {
         // Handle scripts directory
         $targetScriptsDir = $this->targetDir . '/scripts';
         if (is_dir($targetScriptsDir)) {
-            $backupScriptsDir = $targetScriptsDir . '.bak.' . date('Y-m-d-His');
             if (!$this->dryRun) {
-                if (!rename($targetScriptsDir, $backupScriptsDir)) {
-                    throw new \RuntimeException("Failed to backup scripts directory");
+                if (!$this->removeDirectory($targetScriptsDir)) {
+                    throw new \RuntimeException("Failed to remove existing scripts directory");
                 }
-                echo "Created backup of scripts directory: {$backupScriptsDir}\n";
             }
         }
 
@@ -763,27 +745,15 @@ class ScaffoldInstaller {
                 $this->changedFiles[] = 'scripts/';
                 echo "Updated scripts directory\n";
             } catch (\Exception $e) {
-                // If something goes wrong and we have a backup, restore it
-                if (isset($backupScriptsDir) && is_dir($backupScriptsDir)) {
-                    if (is_dir($targetScriptsDir)) {
-                        $this->removeDirectory($targetScriptsDir);
-                    }
-                    rename($backupScriptsDir, $targetScriptsDir);
-                    throw new \RuntimeException("Failed to update scripts directory: " . $e->getMessage() . "\nOriginal directory was restored from backup.");
-                }
-                throw $e;
+                throw new \RuntimeException("Failed to update scripts directory: " . $e->getMessage());
             }
         }
 
         // Handle .twig_cs.php
         $targetTwigCs = $this->targetDir . '/.twig_cs.php';
-        if (file_exists($targetTwigCs)) {
-            $backupTwigCs = $targetTwigCs . '.bak.' . date('Y-m-d-His');
-            if (!$this->dryRun) {
-                if (!copy($targetTwigCs, $backupTwigCs)) {
-                    throw new \RuntimeException("Failed to backup .twig_cs.php");
-                }
-                echo "Created backup: {$backupTwigCs}\n";
+        if (file_exists($targetTwigCs) && !$this->dryRun) {
+            if (!unlink($targetTwigCs)) {
+                throw new \RuntimeException("Failed to remove existing .twig_cs.php");
             }
         }
 
