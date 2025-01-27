@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.0';
+    private string $version = '1.0.1';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -177,7 +177,7 @@ class ScaffoldInstaller {
 
         // Download repository archive
         $url = sprintf(
-            'https://api.github.com/repos/%s/contents?ref=%s',
+            'https://api.github.com/repos/%s/tarball/%s',
             $this->githubRepo,
             $this->githubBranch
         );
@@ -187,50 +187,51 @@ class ScaffoldInstaller {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/vnd.github.v3+json']);
         
-        $response = curl_exec($ch);
+        $tarball = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode !== 200 || !$response) {
-            throw new \RuntimeException("Failed to get repository contents (HTTP {$httpCode})");
+        if ($httpCode !== 200 || !$tarball) {
+            throw new \RuntimeException("Failed to download repository archive (HTTP {$httpCode})");
         }
 
-        $files = json_decode($response, true);
-        if (!is_array($files)) {
-            throw new \RuntimeException("Invalid response from GitHub");
+        // Save tarball to a temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'scaffold_');
+        if (!file_put_contents($tempFile, $tarball)) {
+            throw new \RuntimeException("Failed to save repository archive");
         }
 
-        // Download each file/directory
-        foreach ($files as $file) {
-            if ($file['type'] === 'dir') {
-                $this->downloadDirectoryRecursive($file['path'], $this->installerDir . '/' . $file['name']);
-            } else {
-                $targetPath = $this->installerDir . '/' . $file['name'];
-                
-                // Download the file
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $file['download_url']);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-                
-                $content = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
+        // Extract using tar command (available on macOS and Linux)
+        $command = sprintf('tar -xzf %s -C %s', escapeshellarg($tempFile), escapeshellarg($this->installerDir));
+        $output = [];
+        $returnVar = 0;
+        exec($command, $output, $returnVar);
 
-                if ($httpCode !== 200 || $content === false) {
-                    throw new \RuntimeException("Failed to download file: {$file['path']} (HTTP {$httpCode})");
-                }
-
-                if (file_put_contents($targetPath, $content) === false) {
-                    throw new \RuntimeException("Failed to write file: {$targetPath}");
-                }
-
-                chmod($targetPath, 0644);
-            }
+        if ($returnVar !== 0) {
+            unlink($tempFile);
+            throw new \RuntimeException("Failed to extract repository archive");
         }
+
+        // Clean up the temporary file
+        unlink($tempFile);
+
+        // The archive creates a subdirectory with a generated name, move all files up
+        $extractedDir = glob($this->installerDir . '/*', GLOB_ONLYDIR)[0];
+        if (!$extractedDir) {
+            throw new \RuntimeException("Failed to find extracted directory");
+        }
+
+        // Move files up one level
+        $command = sprintf('mv %s/* %s/', escapeshellarg($extractedDir), escapeshellarg($this->installerDir));
+        exec($command, $output, $returnVar);
+
+        if ($returnVar !== 0) {
+            throw new \RuntimeException("Failed to move files from extracted directory");
+        }
+
+        // Remove the now-empty extracted directory
+        rmdir($extractedDir);
 
         echo "Downloaded scaffold files successfully.\n\n";
     }
