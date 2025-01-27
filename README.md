@@ -82,19 +82,44 @@ php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon --s
 ```
 
 ### Options
+
+Required options when using `--non-interactive`:
 - `--scaffold=<type>`: Scaffold type (drevops, vortex, govcms)
 - `--ci=<type>`: CI/CD type (circleci, github)
 - `--hosting=<type>`: Hosting environment (lagoon, acquia)
-- `--ssh-fingerprint=<fingerprint>`: SSH key fingerprint for CircleCI (required for CircleCI)
+- `--ssh-fingerprint=<fingerprint>`: SSH key fingerprint (required only for CircleCI)
+
+Optional flags and their defaults:
+- `--distribution=<type>`: Distribution type (default: drupal)
 - `--latest`: Use latest version
 - `--version=<tag>`: Use specific version
 - `--dry-run`: Show what would be changed without making changes
 - `--force`: Overwrite existing files (creates backups)
 - `--non-interactive`: Run without prompts
 - `--source-dir=<path>`: Source directory for files
-- `--target-dir=<path>`: Target directory for installation
-- `--github-repo=<repo>`: Custom GitHub repository
-- `--github-branch=<branch>`: Custom GitHub branch
+- `--target-dir=<path>`: Target directory for installation (default: current directory)
+- `--use-local-files`: Use local files instead of downloading from GitHub
+- `--github-repo=<repo>`: Custom GitHub repository (default: salsadigitalauorg/scaffold-toolkit)
+- `--github-branch=<branch>`: Custom GitHub branch (default: main)
+- `--lagoon-cluster=<type>`: Lagoon cluster type (salsa, other) - only used when hosting=lagoon
+
+### Lagoon Cluster Configuration
+
+When using Lagoon hosting, you can specify the cluster type:
+
+1. SalsaDigital Cluster (`--lagoon-cluster=salsa`):
+   - Automatically configures environment variables for the SalsaDigital cluster
+   - Sets up correct webhook endpoints and API URLs
+   - Configures SSH hosts and ports
+
+2. Other Clusters (`--lagoon-cluster=other`):
+   - Requires manual configuration of Lagoon-specific environment variables
+   - You'll need to set up your own webhook endpoints and API URLs
+
+Example with SalsaDigital cluster:
+```bash
+php scaffold-installer.php --scaffold=drevops --ci=circleci --hosting=lagoon --lagoon-cluster=salsa
+```
 
 ### CircleCI Environment Variables
 
