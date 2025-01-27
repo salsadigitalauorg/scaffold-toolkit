@@ -86,8 +86,6 @@ aliases:
     environment:
       DREVOPS_DB_DOWNLOAD_SSH_FINGERPRINT: *db_ssh_fingerprint
       DREVOPS_DEPLOY_SSH_FINGERPRINT: *deploy_ssh_fingerprint
-      SCAFFOLD_TOOLKIT_SSH_FINGERPRINT: ${SCAFFOLD_TOOLKIT_SSH_FINGERPRINT}
-      SCAFFOLD_TOOLKIT_CACHE_TAG: ${SCAFFOLD_TOOLKIT_CACHE_TAG}
     docker:
       # Using the 'runner' container where each job will be executed.
       # This container has all the necessary tools to run a dockerized environment.
@@ -129,8 +127,6 @@ aliases:
     environment:
       DREVOPS_DB_DOWNLOAD_SSH_FINGERPRINT: *db_ssh_fingerprint
       DREVOPS_DEPLOY_SSH_FINGERPRINT: *deploy_ssh_fingerprint
-      SCAFFOLD_TOOLKIT_SSH_FINGERPRINT: ${SCAFFOLD_TOOLKIT_SSH_FINGERPRINT}
-      SCAFFOLD_TOOLKIT_CACHE_TAG: ${SCAFFOLD_TOOLKIT_CACHE_TAG}
       DREVOPS_DB_DOWNLOAD_REFRESH: 1
       DREVOPS_DB_FILE: db_renovate.sql
       DRUPAL_CONFIG_PATH: *drupal_config_path
@@ -217,7 +213,7 @@ jobs:
             echo "$(date $DREVOPS_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
             echo "yes" | tee /tmp/db_cache_fallback_yes
             echo
-            echo '${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
+            echo 'v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
 
       - restore_cache:
           keys:
@@ -230,11 +226,11 @@ jobs:
             # Lookup cache based on the default branch and a timestamp. Allows
             # to use cache from the very first build on the day (sanitized
             # database dump, for example).
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}
+            - v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}
             #
             # Fallback to caching by default branch name only. Allows to use
             # cache from the branch build on the previous day.
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-
+            - v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-
       - run:
           name: Download DB
           command: DREVOPS_DB_DOWNLOAD_SEMAPHORE=/tmp/download-db ./scripts/drevops/download-db.sh
@@ -255,7 +251,7 @@ jobs:
           # The cache will not be saved if it already exists.
           # Note that the cache fallback flag is enabled for this case in order
           # to save cache even if the fallback is not used when restoring it.
-          key: ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
+          key: v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
           paths:
             - *db_cache_dir
 
@@ -279,7 +275,7 @@ jobs:
             echo "$(date $RENOVATEBOT_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
             echo "yes" | tee /tmp/db_cache_fallback_yes
             echo
-            echo '${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-renovate{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
+            echo 'v1.00.3-db10-renovate{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
 
       - run:
           name: Download fresh DB
@@ -290,7 +286,7 @@ jobs:
           # The cache will not be saved if it already exists.
           # Note that the cache fallback flag is enabled for this case in order
           # to save cache even if the fallback is not used when restoring it.
-          key: ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
+          key: v1.00.3-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
           paths:
             - *db_cache_dir
 
@@ -323,18 +319,14 @@ jobs:
           name: Set cache keys for database caching
           command: |
             echo "$DREVOPS_CI_DB_CACHE_BRANCH" | tee /tmp/db_cache_branch
-            echo "${DREVOPS_CI_DB_CACHE_FALLBACK/no/$CIRCLE_BUILD_NUM}" | tee /tmp/db_cache_fallback
-            echo "$(date $DREVOPS_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
             echo "yes" | tee /tmp/db_cache_fallback_yes
-            echo
-            echo '${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
-
+            echo "$(date $DREVOPS_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
       - restore_cache:
           keys:
             # Use cached artifacts from previous builds of this branch.
             # @see https://circleci.com/docs/2.0/caching/#restoring-cache
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-
+            - v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
+            - v1.19.2-db10-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-
       - run:
           name: Build site
           command: ./scripts/drevops/build.sh
@@ -414,18 +406,14 @@ jobs:
           name: Set cache keys for database caching
           command: |
             echo "$DREVOPS_CI_DB_CACHE_BRANCH" | tee /tmp/db_cache_branch
-            echo "${DREVOPS_CI_DB_CACHE_FALLBACK/no/$CIRCLE_BUILD_NUM}" | tee /tmp/db_cache_fallback
-            echo "$(date $DREVOPS_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
             echo "yes" | tee /tmp/db_cache_fallback_yes
-            echo
-            echo '${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}'
-
+            echo "$(date $DREVOPS_CI_DB_CACHE_TIMESTAMP)" | tee /tmp/db_cache_timestamp
       - restore_cache:
           keys:
             # Use cached artifacts from previous builds of this branch.
             # @see https://circleci.com/docs/2.0/caching/#restoring-cache
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-{{ checksum "/tmp/db_cache_timestamp" }}
-            - ${SCAFFOLD_TOOLKIT_CACHE_TAG}-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback" }}-
+            - v1.00.3-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-{{ checksum "/tmp/db_cache_timestamp" }}
+            - v1.00.3-db10-renovate-{{ checksum "/tmp/db_cache_branch" }}-{{ checksum "/tmp/db_cache_fallback_yes" }}-
       - run:
           name: Debug - List .data directory
           command: ls -la /root/project/.data
