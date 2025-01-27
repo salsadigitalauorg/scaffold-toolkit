@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.10';
+    private string $version = '1.0.12';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -22,7 +22,6 @@ class ScaffoldInstaller {
     private string $sourceDir;
     private string $targetDir;
     private array $fileVersions = [];
-    private array $backupFiles = [];
     private array $errors = [];
     private bool $useLocalFiles = false;
     private string $githubRepo = 'salsadigitalauorg/scaffold-toolkit';
@@ -121,10 +120,8 @@ class ScaffoldInstaller {
         $this->printHeader();
         $this->validateEnvironment();
 
-        // Download repository
         $this->downloadRepository();
 
-        // Set source directory to the downloaded repository
         $this->sourceDir = $this->installerDir;
         $this->useLocalFiles = true;
 
@@ -147,10 +144,6 @@ class ScaffoldInstaller {
         }
         
         $this->validateExistingFiles();
-        
-        if (!$this->dryRun) {
-            $this->createBackups();
-        }
         
         $this->ensureDirectoriesExist();
         $this->installFiles();
@@ -417,7 +410,7 @@ class ScaffoldInstaller {
                     exit(1);
                 }
                 
-                echo "\nWould you like to overwrite these files? (This will create backups) [Y/n] ";
+                echo "\nWould you like to overwrite these files? [Y/n] ";
                 $answer = trim(fgets(STDIN)) ?: 'y';
                 if (strtolower($answer) === 'n') {
                     echo "Installation cancelled.\n";
@@ -427,30 +420,13 @@ class ScaffoldInstaller {
             }
             
             if (!$this->dryRun && !$this->nonInteractive) {
-                echo "\nWARNING: These files will be backed up and overwritten.\n";
+                echo "\nWARNING: These files will be overwritten.\n";
                 echo "Continue? [Y/n] ";
                 $answer = trim(fgets(STDIN)) ?: 'y';
                 if (strtolower($answer) === 'n') {
                     echo "Installation cancelled.\n";
                     exit(1);
                 }
-            }
-        }
-    }
-
-    /**
-     * Create backups of existing files.
-     */
-    private function createBackups(): void {
-        $files = $this->getFileList();
-        foreach ($files as $file) {
-            if (file_exists($file['target'])) {
-                $backupFile = $file['target'] . '.bak.' . date('Y-m-d-His');
-                if (!copy($file['target'], $backupFile)) {
-                    throw new \RuntimeException("Failed to create backup of {$file['target']}");
-                }
-                $this->backupFiles[] = $backupFile;
-                echo "Created backup: {$backupFile}\n";
             }
         }
     }
@@ -759,7 +735,6 @@ class ScaffoldInstaller {
                 if (!rename($targetScriptsDir, $backupScriptsDir)) {
                     throw new \RuntimeException("Failed to backup scripts directory");
                 }
-                $this->backupFiles[] = $backupScriptsDir;
                 echo "Created backup of scripts directory: {$backupScriptsDir}\n";
             }
         }
@@ -781,6 +756,10 @@ class ScaffoldInstaller {
                     // Download directly to the target directory
                     $this->downloadDirectoryRecursive('scripts', $targetScriptsDir);
                 }
+
+                // Set execute permissions on all .sh files
+                $this->setScriptPermissions($targetScriptsDir);
+
                 $this->changedFiles[] = 'scripts/';
                 echo "Updated scripts directory\n";
             } catch (\Exception $e) {
@@ -804,7 +783,6 @@ class ScaffoldInstaller {
                 if (!copy($targetTwigCs, $backupTwigCs)) {
                     throw new \RuntimeException("Failed to backup .twig_cs.php");
                 }
-                $this->backupFiles[] = $backupTwigCs;
                 echo "Created backup: {$backupTwigCs}\n";
             }
         }
@@ -992,6 +970,27 @@ EOD;
     }
 
     /**
+     * Set execute permissions on all .sh files in a directory recursively.
+     */
+    private function setScriptPermissions(string $dir): void {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($files as $file) {
+            if ($file->isFile() && $file->getExtension() === 'sh') {
+                chmod($file->getPathname(), 0755);
+                echo "Set execute permissions on: " . $file->getPathname() . "\n";
+            }
+        }
+    }
+
+    /**
      * Print installation summary.
      */
     private function printSummary(): void {
@@ -1005,13 +1004,6 @@ EOD;
         if (!empty($this->changedFiles)) {
             echo "\nChanged files:\n";
             foreach ($this->changedFiles as $file) {
-                echo "- {$file}\n";
-            }
-        }
-        
-        if (!empty($this->backupFiles)) {
-            echo "\nBackup files created:\n";
-            foreach ($this->backupFiles as $file) {
                 echo "- {$file}\n";
             }
         }
