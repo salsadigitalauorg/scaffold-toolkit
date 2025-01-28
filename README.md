@@ -73,7 +73,15 @@ DREVOPS_TASK_LAGOON_INSTANCE_HOSTNAME=ssh.salsa.hosting
 DREVOPS_DEPLOY_LAGOON_INSTANCE_PORT=22
 DREVOPS_DB_DOWNLOAD_LAGOON_SSH_PORT=22
 DREVOPS_TASK_LAGOON_INSTANCE_PORT=22
+DREVOPS_DB_DOWNLOAD_SOURCE=lagoon
+DREVOPS_DEPLOY_TYPES=lagoon
+DREVOPS_NOTIFY_EMAIL_RECIPIENTS=servicedesk.team@salsa.digital|Serice Desk
 ```
+
+Additionally, when Lagoon is selected as the hosting environment (either through interactive mode or `--hosting=lagoon`), the following variables are automatically set in your `.env` file:
+- `DREVOPS_DB_DOWNLOAD_SOURCE=lagoon`
+- `DREVOPS_DEPLOY_TYPES=lagoon`
+- `DREVOPS_NOTIFY_EMAIL_RECIPIENTS=servicedesk.team@salsa.digital|Serice Desk`
 
 ### Non-Interactive Mode
 Specify all required options for automated installation:

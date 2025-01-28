@@ -44,7 +44,10 @@ class ScaffoldInstaller {
         'DREVOPS_TASK_LAGOON_INSTANCE_HOSTNAME' => 'ssh.salsa.hosting',
         'DREVOPS_DEPLOY_LAGOON_INSTANCE_PORT' => '22',
         'DREVOPS_DB_DOWNLOAD_LAGOON_SSH_PORT' => '22',
-        'DREVOPS_TASK_LAGOON_INSTANCE_PORT' => '22'
+        'DREVOPS_TASK_LAGOON_INSTANCE_PORT' => '22',
+        'DREVOPS_DB_DOWNLOAD_SOURCE' => 'lagoon',
+        'DREVOPS_DEPLOY_TYPES' => 'lagoon',
+        'DREVOPS_NOTIFY_EMAIL_RECIPIENTS' => 'servicedesk.team@salsa.digital|Serice Desk'
     ];
 
     private const GREEN = "\033[32m";
