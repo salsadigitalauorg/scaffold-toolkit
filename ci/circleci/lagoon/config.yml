@@ -546,13 +546,13 @@ workflows:
             - build
           filters:
             branches:
-              only: /^(deps\/drupal-minor-patch-contrib.*|deps\/drupal-minor-patch-core.*)$/
+              only: /^(deps\/.*)$/
       - build_renovatebot:
           requires:
             - database_renovatebot
           filters:
             branches:
-              only: /^(deps\/drupal-minor-patch-contrib.*|deps\/drupal-minor-patch-core.*)$/
+              only: /^(deps\/.*)$/
       - deploy:
           requires:
             - build
