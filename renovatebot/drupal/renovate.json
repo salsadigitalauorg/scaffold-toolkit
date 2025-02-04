@@ -24,7 +24,7 @@
         "docker-compose",
         "github-actions"
     ],
-    "dependencyDashboard": true,
+    "dependencyDashboard": false,
     "semanticCommits": "enabled",
     "semanticCommitType": "chore",
     "semanticCommitScope": "deps",
