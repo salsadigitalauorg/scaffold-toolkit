@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.19';
+    private string $version = '1.0.20';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
