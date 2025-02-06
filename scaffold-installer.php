@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.20';
+    private string $version = '1.0.21';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -48,7 +48,8 @@ class ScaffoldInstaller {
         'DREVOPS_DB_DOWNLOAD_SOURCE' => 'lagoon',
         'DREVOPS_DEPLOY_TYPES' => 'lagoon',
         'DREVOPS_NOTIFY_EMAIL_RECIPIENTS' => 'servicedesk.team@salsa.digital|Serice Desk',
-        'DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION' => 'v0.21.3'
+        'DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION' => 'v0.21.3',
+        'DREVOPS_WEBROOT' => 'web'
     ];
 
     private const GREEN = "\033[32m";
@@ -512,13 +513,24 @@ class ScaffoldInstaller {
      * Update .env file with Lagoon variables.
      */
     private function updateEnvFile(): void {
+        // Handle .env file updates
         $envFile = $this->targetDir . '/.env';
         $content = file_exists($envFile) ? file_get_contents($envFile) : '';
         $content = $content ?: '';
         $updatedVars = [];
 
+        // Get current DREVOPS_WEBROOT value if it exists
+        $webroot = 'web'; // Default value
+        if (preg_match('/^DREVOPS_WEBROOT=(.+)$/m', $content, $matches)) {
+            $webroot = trim($matches[1]);
+        }
+
         // Check which variables need to be added
         foreach ($this->lagoonEnvVars as $key => $value) {
+            // Skip DREVOPS_WEBROOT if it's already set
+            if ($key === 'DREVOPS_WEBROOT' && isset($matches)) {
+                continue;
+            }
             if (!preg_match("/^{$key}=/m", $content)) {
                 $updatedVars[$key] = $value;
             }
@@ -542,6 +554,39 @@ class ScaffoldInstaller {
 
             $this->changedFiles[] = '.env';
             echo "Updated .env file with Lagoon variables\n";
+        }
+
+        // Create/update drush/sites/lagoon.site.yml
+        $drushDir = $this->targetDir . '/drush/sites';
+        $lagoonSiteYml = $drushDir . '/lagoon.site.yml';
+        $lagoonSiteContent = <<<EOD
+'*':
+  host: ssh.salsa.hosting
+  paths:
+    files: /app/{$webroot}/sites/default/files
+  user: \${env-name}
+  ssh:
+    options: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=FATAL -p 22'
+    tty: false
+EOD;
+
+        // Create drush/sites directory if it doesn't exist
+        if (!is_dir($drushDir)) {
+            if (!$this->dryRun) {
+                if (!mkdir($drushDir, 0755, true)) {
+                    throw new \RuntimeException("Failed to create directory: {$drushDir}");
+                }
+                echo "Created directory: {$drushDir}\n";
+            }
+        }
+
+        // Create or update lagoon.site.yml
+        if (!$this->dryRun) {
+            if (file_put_contents($lagoonSiteYml, $lagoonSiteContent) === false) {
+                throw new \RuntimeException("Failed to write to {$lagoonSiteYml}");
+            }
+            $this->changedFiles[] = 'drush/sites/lagoon.site.yml';
+            echo "Created/Updated drush/sites/lagoon.site.yml\n";
         }
     }
 

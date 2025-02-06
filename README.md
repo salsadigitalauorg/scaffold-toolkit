@@ -121,10 +121,12 @@ When using Lagoon hosting, you can specify the cluster type:
    - Automatically configures environment variables for the SalsaDigital cluster
    - Sets up correct webhook endpoints and API URLs
    - Configures SSH hosts and ports
+   - Creates/updates `drush/sites/lagoon.site.yml` with proper Lagoon configuration
 
 2. Other Clusters (`--lagoon-cluster=other`):
    - Requires manual configuration of Lagoon-specific environment variables
    - You'll need to set up your own webhook endpoints and API URLs
+   - You'll need to configure your own `drush/sites/lagoon.site.yml`
 
 Example with SalsaDigital cluster:
 ```bash
