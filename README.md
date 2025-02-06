@@ -122,6 +122,9 @@ When using Lagoon hosting, you can specify the cluster type:
    - Sets up correct webhook endpoints and API URLs
    - Configures SSH hosts and ports
    - Creates/updates `drush/sites/lagoon.site.yml` with proper Lagoon configuration
+   - Replaces all instances of `ssh.lagoon.amazeeio.cloud` with `ssh.salsa.hosting` in:
+     - `.env` file
+     - All files in the `scripts` directory and its subdirectories
 
 2. Other Clusters (`--lagoon-cluster=other`):
    - Requires manual configuration of Lagoon-specific environment variables

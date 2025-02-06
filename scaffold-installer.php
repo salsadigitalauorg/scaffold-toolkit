@@ -56,6 +56,8 @@ class ScaffoldInstaller {
     private const BLUE = "\033[34m";
     private const DARK_ORANGE = "\033[38;5;208m";
     private const RESET = "\033[0m";
+    private const OLD_SSH_HOST = 'ssh.lagoon.amazeeio.cloud';
+    private const NEW_SSH_HOST = 'ssh.salsa.hosting';
 
     private function colorize(string $text, string $color = self::GREEN): string {
         return $color . $text . self::RESET;
@@ -510,6 +512,48 @@ class ScaffoldInstaller {
     }
 
     /**
+     * Replace old SSH host with new one in a given file.
+     */
+    private function replaceSSHHost(string $filePath): void {
+        if (!file_exists($filePath)) {
+            return;
+        }
+
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            throw new \RuntimeException("Failed to read file: {$filePath}");
+        }
+
+        $newContent = str_replace(self::OLD_SSH_HOST, self::NEW_SSH_HOST, $content);
+        if ($newContent !== $content) {
+            if (file_put_contents($filePath, $newContent) === false) {
+                throw new \RuntimeException("Failed to write to file: {$filePath}");
+            }
+            echo "Updated SSH host in: {$filePath}\n";
+        }
+    }
+
+    /**
+     * Replace SSH host in all script files recursively.
+     */
+    private function replaceSSHHostInScripts(string $directory): void {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $this->replaceSSHHost($file->getPathname());
+            }
+        }
+    }
+
+    /**
      * Update .env file with Lagoon variables.
      */
     private function updateEnvFile(): void {
@@ -554,6 +598,17 @@ class ScaffoldInstaller {
 
             $this->changedFiles[] = '.env';
             echo "Updated .env file with Lagoon variables\n";
+        }
+
+        // Replace SSH host in .env file
+        if (!$this->dryRun) {
+            $this->replaceSSHHost($envFile);
+        }
+
+        // Replace SSH host in scripts directory
+        $scriptsDir = $this->targetDir . '/scripts';
+        if (!$this->dryRun && is_dir($scriptsDir)) {
+            $this->replaceSSHHostInScripts($scriptsDir);
         }
 
         // Create/update drush/sites/lagoon.site.yml
