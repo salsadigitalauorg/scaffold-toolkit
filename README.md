@@ -76,12 +76,14 @@ DREVOPS_TASK_LAGOON_INSTANCE_PORT=22
 DREVOPS_DB_DOWNLOAD_SOURCE=lagoon
 DREVOPS_DEPLOY_TYPES=lagoon
 DREVOPS_NOTIFY_EMAIL_RECIPIENTS=servicedesk.team@salsa.digital|Serice Desk
+DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION=v0.21.3
 ```
 
 Additionally, when Lagoon is selected as the hosting environment (either through interactive mode or `--hosting=lagoon`), the following variables are automatically set in your `.env` file:
 - `DREVOPS_DB_DOWNLOAD_SOURCE=lagoon`
 - `DREVOPS_DEPLOY_TYPES=lagoon`
 - `DREVOPS_NOTIFY_EMAIL_RECIPIENTS=servicedesk.team@salsa.digital|Serice Desk`
+- `DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION=v0.21.3`
 
 ### Non-Interactive Mode
 Specify all required options for automated installation:
