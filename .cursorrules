@@ -153,7 +153,11 @@
    - Follow Drupal coding standards
    - Test both GitHub and local file modes
 
-# File version tracking
+## File version tracking
 Aleays increment version in the installer script and in this file.
 scaffold-installer.php: 
 current version is: 1.0.21
+
+## Updating .cursorrules file
+
+Every time I have to make clarifications and make more than one API call, I need you to analyze the reason for the inefficiencies and update the .cursorrules file with the new instructions, to improve the efficiency of the API calls, so that I can make fewer API calls.

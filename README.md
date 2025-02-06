@@ -77,6 +77,8 @@ DREVOPS_DB_DOWNLOAD_SOURCE=lagoon
 DREVOPS_DEPLOY_TYPES=lagoon
 DREVOPS_NOTIFY_EMAIL_RECIPIENTS=servicedesk.team@salsa.digital|Serice Desk
 DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION=v0.21.3
+DREVOPS_WEBROOT=web
+DREVOPS_DB_DOWNLOAD_SSH_KEY_FILE=/home/.ssh/lagoon_cli.key
 ```
 
 Additionally, when Lagoon is selected as the hosting environment (either through interactive mode or `--hosting=lagoon`), the following variables are automatically set in your `.env` file:

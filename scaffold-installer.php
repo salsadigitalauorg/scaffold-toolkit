@@ -49,7 +49,8 @@ class ScaffoldInstaller {
         'DREVOPS_DEPLOY_TYPES' => 'lagoon',
         'DREVOPS_NOTIFY_EMAIL_RECIPIENTS' => 'servicedesk.team@salsa.digital|Serice Desk',
         'DREVOPS_DEPLOY_LAGOON_LAGOONCLI_VERSION' => 'v0.21.3',
-        'DREVOPS_WEBROOT' => 'web'
+        'DREVOPS_WEBROOT' => 'web',
+        'DREVOPS_DB_DOWNLOAD_SSH_KEY_FILE' => '/home/.ssh/lagoon_cli.key'
     ];
 
     private const GREEN = "\033[32m";
