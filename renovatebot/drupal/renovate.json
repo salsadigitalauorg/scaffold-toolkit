@@ -1,14 +1,9 @@
 {
-    "extends": [
-        "config:recommended"
-    ],
-    "baseBranches": [
-        "production"
-    ],
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
     "branchPrefix": "deps/",
-    "labels": [
-        "dependencies"
-    ],
+    "baseBranches": ["master"],
+    "labels": ["dependencies"],
     "assignees": [
         "ivangrynenko"
     ],
@@ -16,6 +11,10 @@
         ":prHourlyLimit2"
     ],
     "ignoreCommitsBy": [],
+    "rangeStrategy": "bump",
+    "platform": "github",
+    "onboarding": false,
+    "requireConfig": false,
     "rebaseWhen": "conflicted",
     "timezone": "Australia/Melbourne",
     "enabledManagers": [
@@ -24,6 +23,7 @@
         "docker-compose",
         "github-actions"
     ],
+    "repositories": ["."],
     "dependencyDashboard": false,
     "semanticCommits": "enabled",
     "semanticCommitType": "chore",
@@ -55,6 +55,7 @@
             "groupSlug": "drupal-minor-patch-contrib",
             "rebaseWhen": "conflicted",
             "schedule": ["after 6pm", "before 6am"],
+            "enabled": true,
             "matchDatasources": [
                 "packagist",
                 "git-refs",
@@ -62,9 +63,7 @@
                 "github-releases",
                 "github-tags"
             ],
-            "matchPackagePatterns": [
-                ".*"
-            ],
+            "matchPackageNames": ["drupal/*"],
             "matchUpdateTypes": [
                 "patch",
                 "minor"
@@ -80,13 +79,14 @@
                 "labels": ["security"],
                 "automerge": true
             },
-            "enabled": true
+            "osvVulnerabilityAlerts": true
         },
         {
             "groupName": "Minor and Patch Core",
             "groupSlug": "drupal-minor-patch-core",
             "schedule": ["after 6pm", "before 6am"],
             "rebaseWhen": "conflicted",
+            "enabled": true,
             "matchDatasources": [
                 "packagist"
             ],
@@ -105,7 +105,7 @@
                 "labels": ["security"],
                 "automerge": true
             },
-            "enabled": true
+            "osvVulnerabilityAlerts": true
         },
         {
             "groupName": "Major Core - Disabled",
@@ -168,5 +168,9 @@
             ],
             "automerge": true
         }
-    ]
+    ],
+    "composerIgnorePlatformReqs": ["ext-*", "lib-*"],
+    "composer": {
+        "enabled": true
+    }
 }
