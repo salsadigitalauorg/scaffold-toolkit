@@ -2,7 +2,7 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": ["config:recommended"],
     "branchPrefix": "deps/",
-    "baseBranches": ["master"],
+    "baseBranches": ["develop"],
     "labels": ["dependencies"],
     "assignees": [
         "ivangrynenko"
@@ -79,7 +79,8 @@
                 "labels": ["security"],
                 "automerge": true
             },
-            "osvVulnerabilityAlerts": true
+            "osvVulnerabilityAlerts": true,
+            "automerge": true
         },
         {
             "groupName": "Minor and Patch Core",
@@ -105,7 +106,8 @@
                 "labels": ["security"],
                 "automerge": true
             },
-            "osvVulnerabilityAlerts": true
+            "osvVulnerabilityAlerts": true,
+            "automerge": true
         },
         {
             "groupName": "Major Core - Disabled",
