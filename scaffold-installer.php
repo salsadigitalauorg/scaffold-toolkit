@@ -960,6 +960,30 @@ EOD;
     }
 
     /**
+     * Get webroot value from .env file.
+     */
+    private function getWebroot(): string {
+        $envFile = $this->targetDir . '/.env';
+        $webroot = 'web'; // Default value
+
+        if (file_exists($envFile)) {
+            $content = file_get_contents($envFile);
+            if ($content !== false) {
+                // First try WEBROOT
+                if (preg_match('/^WEBROOT=(.+)$/m', $content, $matches)) {
+                    return trim($matches[1]);
+                }
+                // Then try DREVOPS_WEBROOT
+                if (preg_match('/^DREVOPS_WEBROOT=(.+)$/m', $content, $matches)) {
+                    return trim($matches[1]);
+                }
+            }
+        }
+
+        return $webroot;
+    }
+
+    /**
      * Update scripts directory and twig_cs.php file.
      */
     private function updateScriptsAndTwigCs(): void {
@@ -1009,9 +1033,12 @@ EOD;
             }
         }
 
+        // Get webroot value
+        $webroot = $this->getWebroot();
+
         // Copy new .twig_cs.php
         if (!$this->dryRun) {
-            $twigCsContent = <<<'EOD'
+            $twigCsContent = <<<EOD
 <?php
 
 declare(strict_types=1);
@@ -1023,15 +1050,15 @@ return Twigcs\Config\Config::create()
   ->setSeverity('error')
   ->setReporter('console')
   ->setRuleSet(Twigcs\Ruleset\Official::class)
-  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/web/modules/custom'))
-  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/web/themes/custom'));
+  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/{$webroot}/modules/custom'))
+  ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/{$webroot}/themes/custom'));
 EOD;
             
             if (file_put_contents($targetTwigCs, $twigCsContent) === false) {
                 throw new \RuntimeException("Failed to write .twig_cs.php");
             }
             $this->changedFiles[] = '.twig_cs.php';
-            echo "Updated .twig_cs.php\n";
+            echo "Updated .twig_cs.php with webroot: {$webroot}\n";
         }
     }
 
