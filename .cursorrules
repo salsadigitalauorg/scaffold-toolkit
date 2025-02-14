@@ -162,3 +162,7 @@ current version is: 1.0.21
 ## Updating .cursorrules file
 
 Every time I have to make clarifications and make more than one API call, I need you to analyze the reason for the inefficiencies and update the .cursorrules file with the new instructions, to improve the efficiency of the API calls, so that I can make fewer API calls.
+
+testing: Ensure every change is reflected in the tests
+version-increment: Keeps package version incremented upon code change
+ahoy-scripts: Guidelines for working with Ahoy commands and shell scripts, including best practices for script organization, error handling, and maintenance
