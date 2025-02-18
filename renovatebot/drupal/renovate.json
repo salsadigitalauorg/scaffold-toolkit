@@ -13,9 +13,6 @@
     ],
     "ignoreCommitsBy": [],
     "rangeStrategy": "bump",
-    "platform": "github",
-    "onboarding": false,
-    "requireConfig": false,
     "rebaseWhen": "conflicted",
     "timezone": "Australia/Melbourne",
     "enabledManagers": [
@@ -34,6 +31,8 @@
     "packageRules": [
         {
             "groupName": "Major all - skipped to update manually",
+            "groupSlug": "all-major",
+            "branchName": "deps/major-all",
             "matchDatasources": [
                 "packagist"
             ],
@@ -55,6 +54,10 @@
         {
             "groupName": "Security updates - Contrib",
             "groupSlug": "drupal-security-contrib",
+            "branchName": "deps/drupal-security-contrib",
+            "group": {
+                "commitMessageTopic": "Drupal contrib security dependencies"
+            },
             "rebaseWhen": "conflicted",
             "schedule": ["after 6pm", "before 6am"],
             "enabled": true,
@@ -88,6 +91,10 @@
         {
             "groupName": "Minor and Patch Contrib - Non-security",
             "groupSlug": "drupal-minor-patch-contrib-regular",
+            "branchName": "deps/drupal-minor-patch-contrib-regular",
+            "group": {
+                "commitMessageTopic": "Drupal contrib dependencies"
+            },
             "rebaseWhen": "conflicted",
             "schedule": ["after 6pm", "before 6am"],
             "enabled": true,
@@ -119,6 +126,10 @@
         {
             "groupName": "Security updates - Core",
             "groupSlug": "drupal-security-core",
+            "branchName": "deps/drupal-security-core",
+            "group": {
+                "commitMessageTopic": "Drupal core security dependencies"
+            },
             "schedule": ["after 6pm", "before 6am"],
             "rebaseWhen": "conflicted",
             "enabled": true,
@@ -147,6 +158,10 @@
         {
             "groupName": "Minor and Patch Core - Non-security",
             "groupSlug": "drupal-minor-patch-core-regular",
+            "branchName": "deps/drupal-minor-patch-core-regular",
+            "group": {
+                "commitMessageTopic": "Drupal core dependencies"
+            },
             "schedule": ["after 6pm", "before 6am"],
             "rebaseWhen": "conflicted",
             "enabled": true,
@@ -190,6 +205,10 @@
         {
             "groupName": "Theme packages",
             "groupSlug": "theme-npm",
+            "branchName": "deps/theme-npm",
+            "group": {
+                "commitMessageTopic": "NPM dependencies"
+            },
             "schedule": ["after 6pm", "before 6am"],
             "matchDatasources": [
                 "npm"
@@ -207,6 +226,7 @@
         },
         {
             "groupName": "Docker images excluded",
+            "branchName": "deps/docker-images-excluded",
             "matchManagers": [
                 "dockerfile",
                 "docker-compose"
@@ -220,10 +240,19 @@
         {
             "groupName": "Docker images",
             "groupSlug": "docker",
+            "branchName": "deps/docker",
+            "group": {
+                "commitMessageTopic": "Docker dependencies"
+            },
             "schedule": ["after 6pm", "before 6am"],
             "matchManagers": [
                 "dockerfile",
                 "docker-compose"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "minor",
+                "major"
             ],
             "excludePackageNames": [
                 "selenium/standalone-chrome",
