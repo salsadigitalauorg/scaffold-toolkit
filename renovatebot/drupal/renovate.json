@@ -5,7 +5,8 @@
     "baseBranches": ["develop"],
     "labels": ["dependencies"],
     "assignees": [
-        "ivangrynenko"
+        "ivangrynenko",
+        "govindmaloo"
     ],
     "ignorePresets": [
         ":prHourlyLimit2"
@@ -48,14 +49,16 @@
                 "drupal/core-dev",
                 "drupal/core-recommended"
             ],
+            "labels": ["breaking-change"],
             "enabled": false
         },
         {
-            "groupName": "Minor and Patch Contrib",
-            "groupSlug": "drupal-minor-patch-contrib",
+            "groupName": "Security updates - Contrib",
+            "groupSlug": "drupal-security-contrib",
             "rebaseWhen": "conflicted",
             "schedule": ["after 6pm", "before 6am"],
             "enabled": true,
+            "labels": ["security", "critical"],
             "matchDatasources": [
                 "packagist",
                 "git-refs",
@@ -83,11 +86,43 @@
             "automerge": true
         },
         {
-            "groupName": "Minor and Patch Core",
-            "groupSlug": "drupal-minor-patch-core",
+            "groupName": "Minor and Patch Contrib - Non-security",
+            "groupSlug": "drupal-minor-patch-contrib-regular",
+            "rebaseWhen": "conflicted",
+            "schedule": ["after 6pm", "before 6am"],
+            "enabled": true,
+            "labels": ["maintenance"],
+            "matchDatasources": [
+                "packagist",
+                "git-refs",
+                "git-tags",
+                "github-releases",
+                "github-tags"
+            ],
+            "matchPackageNames": ["drupal/*"],
+            "matchUpdateTypes": [
+                "patch",
+                "minor"
+            ],
+            "excludePackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev"
+            ],
+            "vulnerabilityAlerts": {
+                "enabled": false
+            },
+            "osvVulnerabilityAlerts": false,
+            "automerge": false
+        },
+        {
+            "groupName": "Security updates - Core",
+            "groupSlug": "drupal-security-core",
             "schedule": ["after 6pm", "before 6am"],
             "rebaseWhen": "conflicted",
             "enabled": true,
+            "labels": ["security", "critical"],
             "matchDatasources": [
                 "packagist"
             ],
@@ -108,6 +143,32 @@
             },
             "osvVulnerabilityAlerts": true,
             "automerge": true
+        },
+        {
+            "groupName": "Minor and Patch Core - Non-security",
+            "groupSlug": "drupal-minor-patch-core-regular",
+            "schedule": ["after 6pm", "before 6am"],
+            "rebaseWhen": "conflicted",
+            "enabled": true,
+            "labels": ["maintenance"],
+            "matchDatasources": [
+                "packagist"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "minor"
+            ],
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev"
+            ],
+            "vulnerabilityAlerts": {
+                "enabled": false
+            },
+            "osvVulnerabilityAlerts": false,
+            "automerge": false
         },
         {
             "groupName": "Major Core - Disabled",
