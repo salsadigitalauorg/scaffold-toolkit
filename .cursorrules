@@ -166,3 +166,86 @@ Every time I have to make clarifications and make more than one API call, I need
 testing: Ensure every change is reflected in the tests
 version-increment: Keeps package version incremented upon code change
 ahoy-scripts: Guidelines for working with Ahoy commands and shell scripts, including best practices for script organization, error handling, and maintenance
+
+# Project Structure Rule
+
+## Scaffold Toolkit Project Structure
+
+<rule>
+name: scaffold_toolkit_structure
+description: Defines the structure and organization of the Scaffold Toolkit project
+filters:
+  - type: file_extension
+    pattern: "\\.(php|yml|json|xml)$"
+
+actions:
+  - type: enforce
+    conditions:
+      - pattern: "^(?!declare\\(strict_types=1\\);)"
+        message: "PHP files must start with strict_types declaration"
+
+  - type: suggest
+    message: |
+      **Project Structure:**
+      ```
+      .
+      ├── scaffold-installer.php     # Main installer script
+      ├── includes/                  # Core functionality traits
+      │   ├── ScaffoldInstallerTrait.php
+      │   ├── hosting/              # Hosting integrations
+      │   │   └── LagoonIntegration.php
+      │   ├── ci/                   # CI/CD integrations
+      │   │   └── CircleCiIntegration.php
+      │   ├── package_managers/     # Package manager integrations
+      │   │   └── RenovateBotIntegration.php
+      │   └── scaffold/            # Scaffold type integrations
+      │       └── DrevOpsIntegration.php
+      ├── ci/                      # CI configuration templates
+      │   ├── circleci/           # CircleCI specific configs
+      │   │   ├── acquia/         # Acquia hosting configs
+      │   │   └── lagoon/         # Lagoon hosting configs
+      │   └── gha/                # GitHub Actions configs (future)
+      ├── scaffold/               # Scaffold type specific files
+      │   └── drevops/           # DrevOps scaffold files
+      │       ├── phpmd.xml      # PHP Mess Detector config
+      │       ├── phpunit.xml    # PHPUnit config
+      │       └── .twig_cs.php   # Twig CS config
+      └── renovatebot/           # RenovateBot configurations
+          ├── drupal/            # Drupal specific config
+          │   └── renovate.json
+          └── govcms_paas/       # GovCMS PaaS config
+              └── renovate.json
+      ```
+
+      **Key Directories:**
+      - `includes/`: Core functionality traits and integrations
+      - `ci/`: CI/CD configuration templates
+      - `scaffold/`: Scaffold-specific configuration files
+      - `renovatebot/`: RenovateBot configuration files
+
+      **File Naming Conventions:**
+      - Trait files: `*Integration.php`
+      - Config files: Use standard names (phpunit.xml, phpmd.xml)
+      - CI configs: Follow platform conventions (config.yml for CircleCI)
+
+      **Integration Types:**
+      1. Hosting:
+         - Lagoon (implemented)
+         - Acquia (planned)
+      2. CI/CD:
+         - CircleCI (implemented)
+         - GitHub Actions (planned)
+      3. Scaffold Types:
+         - DrevOps (implemented)
+         - Vortex (planned)
+         - GovCMS PaaS (planned)
+
+      **Version Management:**
+      - All configuration files should include version metadata
+      - Format: `# Version: X.Y.Z`
+      - Current installer version: 1.0.24
+
+metadata:
+  priority: high
+  version: 1.0
+</rule>
