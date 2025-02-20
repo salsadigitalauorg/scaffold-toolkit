@@ -157,7 +157,7 @@
 
 Aleays increment version in the installer script and in this file.
 scaffold-installer.php: 
-current version is: 1.0.21
+current version is: 1.0.25
 
 ## Updating .cursorrules file
 
@@ -243,7 +243,7 @@ actions:
       **Version Management:**
       - All configuration files should include version metadata
       - Format: `# Version: X.Y.Z`
-      - Current installer version: 1.0.24
+      - Current installer version: 1.0.25
 
 metadata:
   priority: high
