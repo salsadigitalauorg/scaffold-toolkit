@@ -96,6 +96,15 @@ function setupInstaller(string $targetDir): void {
         $installerDir . '/includes/ci',
         $installerDir . '/includes/package_managers',
         $installerDir . '/includes/scaffold',
+        $installerDir . '/scaffold',
+        $installerDir . '/scaffold/drevops',
+        $installerDir . '/ci',
+        $installerDir . '/ci/circleci',
+        $installerDir . '/ci/circleci/acquia',
+        $installerDir . '/ci/circleci/lagoon',
+        $installerDir . '/renovatebot',
+        $installerDir . '/renovatebot/drupal',
+        $installerDir . '/renovatebot/govcms_paas',
     ];
 
     foreach ($directories as $dir) {
@@ -963,45 +972,27 @@ EOD;
     /**
      * Get file content either from local source or GitHub.
      */
-    private function getFileContent(string $sourcePath): string|false {
+    private function getFileContent(string $source): string|false {
         if ($this->useLocalFiles) {
-            // For local files, we need to strip the .scaffold-installer prefix since files are already in that directory
-            $localPath = $this->installerDir . '/' . preg_replace('/^\.scaffold-installer\//', '', $sourcePath);
-            if (!file_exists($localPath)) {
-                throw new \RuntimeException("Local file not found: {$localPath}");
-            }
-            return file_get_contents($localPath);
+            $sourceFile = $this->installerDir . '/' . $source;
+            return file_get_contents($sourceFile);
         }
 
-        // Construct GitHub raw content URL
-        $githubUrl = sprintf(
-            'https://raw.githubusercontent.com/%s/refs/heads/%s/%s',
-            $this->githubRepo,
-            $this->githubBranch,
-            $sourcePath
-        );
-
-        // Initialize cURL
+        $url = "https://raw.githubusercontent.com/{$this->githubRepo}/{$this->githubBranch}/{$source}";
+        
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $githubUrl);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_FAILONERROR, true);
-
-        // Add user agent to avoid GitHub API rate limiting
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-
-        // Execute the request
+        
         $content = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if ($content === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new \RuntimeException("Failed to download file from GitHub: $error (HTTP $httpCode)");
-        }
-        
         curl_close($ch);
+
+        if ($httpCode !== 200) {
+            return false;
+        }
 
         return $content;
     }
