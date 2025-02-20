@@ -12,11 +12,111 @@ declare(strict_types=1);
 
 namespace SalsaDigital\ScaffoldToolkit;
 
-require_once __DIR__ . '/includes/ScaffoldInstallerTrait.php';
-require_once __DIR__ . '/includes/hosting/LagoonIntegration.php';
-require_once __DIR__ . '/includes/ci/CircleCiIntegration.php';
-require_once __DIR__ . '/includes/package_managers/RenovateBotIntegration.php';
-require_once __DIR__ . '/includes/scaffold/DrevOpsIntegration.php';
+// Basic constants needed before traits are loaded
+const GREEN = "\033[32m";
+const BLUE = "\033[34m";
+const DARK_ORANGE = "\033[38;5;208m";
+const RESET = "\033[0m";
+
+// Basic colorize function needed before traits are loaded
+function colorize(string $text, string $color = GREEN): string {
+    return $color . $text . RESET;
+}
+
+// Download and set up the installer files
+function setupInstaller(string $targetDir): void {
+    echo colorize("Setting up Scaffold Toolkit Installer...\n", DARK_ORANGE);
+
+    // Create installer directory
+    $installerDir = $targetDir . '/.scaffold-installer';
+    if (!is_dir($installerDir)) {
+        if (!mkdir($installerDir, 0755, true)) {
+            throw new \RuntimeException("Failed to create installer directory: {$installerDir}");
+        }
+    }
+
+    // Download repository archive
+    $url = 'https://api.github.com/repos/salsadigitalauorg/scaffold-toolkit/tarball/main';
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
+    
+    $tarball = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200 || !$tarball) {
+        throw new \RuntimeException("Failed to download repository archive (HTTP {$httpCode})");
+    }
+
+    // Save tarball to a temporary file
+    $tempFile = tempnam(sys_get_temp_dir(), 'scaffold_');
+    if (!file_put_contents($tempFile, $tarball)) {
+        throw new \RuntimeException("Failed to save repository archive");
+    }
+
+    // Extract using tar command
+    $command = sprintf('tar -xzf %s -C %s', escapeshellarg($tempFile), escapeshellarg($installerDir));
+    $output = [];
+    $returnVar = 0;
+    exec($command, $output, $returnVar);
+
+    if ($returnVar !== 0) {
+        unlink($tempFile);
+        throw new \RuntimeException("Failed to extract repository archive");
+    }
+
+    // Clean up the temporary file
+    unlink($tempFile);
+
+    // The archive creates a subdirectory with a generated name, move all files up
+    $extractedDir = glob($installerDir . '/*', GLOB_ONLYDIR)[0];
+    if (!$extractedDir) {
+        throw new \RuntimeException("Failed to find extracted directory");
+    }
+
+    // Move files up one level
+    $command = sprintf('mv %s/* %s/', escapeshellarg($extractedDir), escapeshellarg($installerDir));
+    exec($command, $output, $returnVar);
+
+    if ($returnVar !== 0) {
+        throw new \RuntimeException("Failed to move files from extracted directory");
+    }
+
+    // Remove the now-empty extracted directory
+    rmdir($extractedDir);
+
+    // Create necessary directories
+    $directories = [
+        $installerDir . '/includes',
+        $installerDir . '/includes/hosting',
+        $installerDir . '/includes/ci',
+        $installerDir . '/includes/package_managers',
+        $installerDir . '/includes/scaffold',
+    ];
+
+    foreach ($directories as $dir) {
+        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+            throw new \RuntimeException("Failed to create directory: {$dir}");
+        }
+    }
+
+    echo "Scaffold Toolkit files downloaded successfully.\n\n";
+}
+
+// Set up the installer before requiring trait files
+$targetDir = '.';
+setupInstaller($targetDir);
+
+// Now require the trait files from the downloaded structure
+require_once $targetDir . '/.scaffold-installer/includes/ScaffoldInstallerTrait.php';
+require_once $targetDir . '/.scaffold-installer/includes/hosting/LagoonIntegration.php';
+require_once $targetDir . '/.scaffold-installer/includes/ci/CircleCiIntegration.php';
+require_once $targetDir . '/.scaffold-installer/includes/package_managers/RenovateBotIntegration.php';
+require_once $targetDir . '/.scaffold-installer/includes/scaffold/DrevOpsIntegration.php';
 
 use SalsaDigital\ScaffoldToolkit\Hosting\LagoonIntegration;
 use SalsaDigital\ScaffoldToolkit\CI\CircleCiIntegration;
@@ -30,7 +130,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.23';
+    private string $version = '1.0.24';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -70,16 +170,8 @@ class ScaffoldInstaller {
         'DREVOPS_DB_DOWNLOAD_SSH_KEY_FILE' => '/home/.ssh/lagoon_cli.key'
     ];
 
-    private const GREEN = "\033[32m";
-    private const BLUE = "\033[34m";
-    private const DARK_ORANGE = "\033[38;5;208m";
-    private const RESET = "\033[0m";
     private const OLD_SSH_HOST = 'ssh.lagoon.amazeeio.cloud';
     private const NEW_SSH_HOST = 'ssh.salsa.hosting';
-
-    private function colorize(string $text, string $color = self::GREEN): string {
-        return $color . $text . self::RESET;
-    }
 
     public function __construct(array $options = []) {
         $this->dryRun = isset($options['dry-run']);
@@ -306,8 +398,8 @@ class ScaffoldInstaller {
      * Print the installer header.
      */
     private function printHeader(): void {
-        echo $this->colorize("Scaffold Toolkit Installer v{$this->version}", self::DARK_ORANGE) . "\n";
-        echo $this->colorize("=====================================", self::DARK_ORANGE) . "\n\n";
+        echo colorize("Scaffold Toolkit Installer v{$this->version}", DARK_ORANGE) . "\n";
+        echo colorize("=====================================", DARK_ORANGE) . "\n\n";
     }
 
     /**
@@ -359,9 +451,9 @@ class ScaffoldInstaller {
                 
                 // Color the text if it's selected or is the default
                 if ($index === $currentSelection) {
-                    $text = $this->colorize($text);
+                    $text = colorize($text);
                 } elseif ($default !== null && strtolower($choice) === strtolower($default)) {
-                    $text = $this->colorize($text, self::BLUE);
+                    $text = colorize($text, BLUE);
                 }
                 
                 echo $prefix . $text . "\n";
@@ -1297,22 +1389,22 @@ EOD;
      * Print installation summary.
      */
     private function printSummary(): void {
-        $summaryTitle = $this->colorize("Installation Summary", self::BLUE);
-        $separator = $this->colorize("===================", self::BLUE);
+        $summaryTitle = colorize("Installation Summary", BLUE);
+        $separator = colorize("===================", BLUE);
         echo "\n{$summaryTitle}\n";
         echo "{$separator}\n";
-        echo $this->colorize("Scaffold Type: " . ucfirst($this->scaffoldType), self::BLUE) . "\n";
-        echo $this->colorize("CI/CD Type: " . ucfirst($this->ciType), self::BLUE) . "\n";
-        echo $this->colorize("Hosting: " . ucfirst($this->hostingType), self::BLUE) . "\n";
+        echo colorize("Scaffold Type: " . ucfirst($this->scaffoldType), BLUE) . "\n";
+        echo colorize("CI/CD Type: " . ucfirst($this->ciType), BLUE) . "\n";
+        echo colorize("Hosting: " . ucfirst($this->hostingType), BLUE) . "\n";
         if ($this->hostingType === 'lagoon' && $this->lagoonCluster) {
-            echo $this->colorize("Lagoon Cluster: " . ucfirst($this->lagoonCluster), self::BLUE) . "\n";
+            echo colorize("Lagoon Cluster: " . ucfirst($this->lagoonCluster), BLUE) . "\n";
         }
-        echo $this->colorize("Mode: " . ($this->dryRun ? 'Dry Run' : 'Live'), self::BLUE) . "\n";
+        echo colorize("Mode: " . ($this->dryRun ? 'Dry Run' : 'Live'), BLUE) . "\n";
         
         if (!empty($this->changedFiles)) {
             echo "\nChanged files:\n";
             foreach ($this->changedFiles as $file) {
-                echo $this->colorize("- {$file}", self::BLUE) . "\n";
+                echo colorize("- {$file}", BLUE) . "\n";
             }
         }
 
@@ -1366,7 +1458,7 @@ EOD;
         echo "4. Copy the fingerprint (MD5 format)\n\n";
         
         if (isset($this->savedValues['ssh_fingerprint'])) {
-            echo "Previously used fingerprint: " . $this->colorize($this->savedValues['ssh_fingerprint']) . "\n";
+            echo "Previously used fingerprint: " . colorize($this->savedValues['ssh_fingerprint']) . "\n";
             echo "Press Enter to use the previous value, or enter a new fingerprint: ";
         } else {
             echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
