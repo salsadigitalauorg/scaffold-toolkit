@@ -19,6 +19,10 @@ trait DrevOpsIntegration {
                 'source' => 'scaffold/drevops/phpunit.xml',
                 'target' => 'phpunit.xml',
             ],
+            [
+                'source' => 'scaffold/drevops/rector.php',
+                'target' => 'rector.php',
+            ],
         ];
 
         if ($this->shouldUpdateScripts) {

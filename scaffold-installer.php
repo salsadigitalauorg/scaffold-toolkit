@@ -139,7 +139,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.24';
+    private string $version = '1.0.25';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -1073,6 +1073,7 @@ EOD;
             echo "{$step}. Install DrevOps configuration files:\n";
             echo "   - phpmd.xml\n";
             echo "   - phpunit.xml\n";
+            echo "   - rector.php\n";
             $step++;
         }
 
