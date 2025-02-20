@@ -30,7 +30,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.22';
+    private string $version = '1.0.23';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
