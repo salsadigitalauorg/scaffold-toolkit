@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace SalsaDigital\ScaffoldToolkit;
 
 class ScaffoldInstaller {
-    private string $version = '1.0.21';
+    private string $version = '1.0.22';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -564,6 +564,27 @@ class ScaffoldInstaller {
         $content = $content ?: '';
         $updatedVars = [];
 
+        // Ensure DREVOPS_DEPLOY_TYPES is correctly set
+        // First remove any existing DREVOPS_DEPLOY_TYPE (singular) setting
+        $content = preg_replace('/^DREVOPS_DEPLOY_TYPE=.*$/m', '', $content);
+        
+        // Then handle DREVOPS_DEPLOY_TYPES (plural)
+        if (!preg_match('/^DREVOPS_DEPLOY_TYPES=/m', $content)) {
+            $updatedVars['DREVOPS_DEPLOY_TYPES'] = 'lagoon';
+        } else {
+            // Update existing DREVOPS_DEPLOY_TYPES if it doesn't contain lagoon
+            $content = preg_replace_callback(
+                '/^(DREVOPS_DEPLOY_TYPES=.*)$/m',
+                function($matches) {
+                    if (!str_contains($matches[1], 'lagoon')) {
+                        return 'DREVOPS_DEPLOY_TYPES=lagoon';
+                    }
+                    return $matches[1];
+                },
+                $content
+            );
+        }
+
         // Get current DREVOPS_WEBROOT value if it exists
         $webroot = 'web'; // Default value
         if (preg_match('/^DREVOPS_WEBROOT=(.+)$/m', $content, $matches)) {
@@ -574,6 +595,10 @@ class ScaffoldInstaller {
         foreach ($this->lagoonEnvVars as $key => $value) {
             // Skip DREVOPS_WEBROOT if it's already set
             if ($key === 'DREVOPS_WEBROOT' && isset($matches)) {
+                continue;
+            }
+            // Skip DREVOPS_DEPLOY_TYPES as it's handled separately
+            if ($key === 'DREVOPS_DEPLOY_TYPES') {
                 continue;
             }
             if (!preg_match("/^{$key}=/m", $content)) {

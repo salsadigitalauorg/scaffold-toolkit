@@ -1,268 +1,114 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended"],
-    "branchPrefix": "deps/",
-    "baseBranches": ["develop"],
-    "labels": ["dependencies"],
-    "assignees": [
-        "ivangrynenko",
-        "govindmaloo"
+    "extends": [
+        "config:recommended"
     ],
+    "branchPrefix": "deps/",
+    "labels": [
+        "PR: Dependencies"
+    ],
+    "assignees": [],
     "ignorePresets": [
         ":prHourlyLimit2"
     ],
-    "ignoreCommitsBy": [],
-    "rangeStrategy": "bump",
-    "rebaseWhen": "conflicted",
+    "rangeStrategy": "update-lockfile",
     "timezone": "Australia/Melbourne",
+    "configMigration": true,
     "enabledManagers": [
         "composer",
         "dockerfile",
         "docker-compose",
-        "github-actions"
+        "github-actions",
+        "custom.regex"
     ],
-    "repositories": ["."],
-    "dependencyDashboard": false,
-    "semanticCommits": "enabled",
-    "semanticCommitType": "chore",
-    "semanticCommitScope": "deps",
-    "prConcurrentLimit": 10,
-    "prHourlyLimit": 5,
     "packageRules": [
         {
+            "matchDepNames": [
+                "php"
+            ],
+            "enabled": false
+        },
+        {
             "groupName": "Major all - skipped to update manually",
-            "groupSlug": "all-major",
-            "branchName": "deps/major-all",
             "matchDatasources": [
                 "packagist"
             ],
             "matchUpdateTypes": [
                 "major"
             ],
-            "matchPackagePatterns": [
-                ".*"
-            ],
-            "excludePackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-dev",
-                "drupal/core-recommended"
-            ],
-            "labels": ["breaking-change"],
-            "enabled": false
+            "enabled": false,
+            "matchPackageNames": [
+                "/.*/"
+            ]
         },
         {
-            "groupName": "Security updates - Contrib",
-            "groupSlug": "drupal-security-contrib",
-            "branchName": "deps/drupal-security-contrib",
-            "group": {
-                "commitMessageTopic": "Drupal contrib security dependencies"
-            },
-            "rebaseWhen": "conflicted",
-            "schedule": ["after 6pm", "before 6am"],
-            "enabled": true,
-            "labels": ["security", "critical"],
-            "matchDatasources": [
-                "packagist",
-                "git-refs",
-                "git-tags",
-                "github-releases",
-                "github-tags"
-            ],
-            "matchPackageNames": ["drupal/*"],
-            "matchUpdateTypes": [
-                "patch",
-                "minor"
-            ],
-            "excludePackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended",
-                "drupal/core-dev"
-            ],
-            "vulnerabilityAlerts": {
-                "enabled": true,
-                "labels": ["security"],
-                "automerge": true
-            },
-            "osvVulnerabilityAlerts": true,
-            "automerge": true
-        },
-        {
-            "groupName": "Minor and Patch Contrib - Non-security",
-            "groupSlug": "drupal-minor-patch-contrib-regular",
-            "branchName": "deps/drupal-minor-patch-contrib-regular",
-            "group": {
-                "commitMessageTopic": "Drupal contrib dependencies"
-            },
-            "rebaseWhen": "conflicted",
-            "schedule": ["after 6pm", "before 6am"],
-            "enabled": true,
-            "labels": ["maintenance"],
-            "matchDatasources": [
-                "packagist",
-                "git-refs",
-                "git-tags",
-                "github-releases",
-                "github-tags"
-            ],
-            "matchPackageNames": ["drupal/*"],
-            "matchUpdateTypes": [
-                "patch",
-                "minor"
-            ],
-            "excludePackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended",
-                "drupal/core-dev"
-            ],
-            "vulnerabilityAlerts": {
-                "enabled": false
-            },
-            "osvVulnerabilityAlerts": false,
-            "automerge": false
-        },
-        {
-            "groupName": "Security updates - Core",
-            "groupSlug": "drupal-security-core",
-            "branchName": "deps/drupal-security-core",
-            "group": {
-                "commitMessageTopic": "Drupal core security dependencies"
-            },
-            "schedule": ["after 6pm", "before 6am"],
-            "rebaseWhen": "conflicted",
-            "enabled": true,
-            "labels": ["security", "critical"],
+            "groupName": "Minor and Patch Contrib",
+            "groupSlug": "drupal-minor-patch-contrib",
             "matchDatasources": [
                 "packagist"
-            ],
-            "matchUpdateTypes": [
-                "patch",
-                "minor"
-            ],
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended",
-                "drupal/core-dev"
-            ],
-            "vulnerabilityAlerts": {
-                "enabled": true,
-                "labels": ["security"],
-                "automerge": true
-            },
-            "osvVulnerabilityAlerts": true,
-            "automerge": true
-        },
-        {
-            "groupName": "Minor and Patch Core - Non-security",
-            "groupSlug": "drupal-minor-patch-core-regular",
-            "branchName": "deps/drupal-minor-patch-core-regular",
-            "group": {
-                "commitMessageTopic": "Drupal core dependencies"
-            },
-            "schedule": ["after 6pm", "before 6am"],
-            "rebaseWhen": "conflicted",
-            "enabled": true,
-            "labels": ["maintenance"],
-            "matchDatasources": [
-                "packagist"
-            ],
-            "matchUpdateTypes": [
-                "patch",
-                "minor"
-            ],
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended",
-                "drupal/core-dev"
-            ],
-            "vulnerabilityAlerts": {
-                "enabled": false
-            },
-            "osvVulnerabilityAlerts": false,
-            "automerge": false
-        },
-        {
-            "groupName": "Major Core - Disabled",
-            "groupSlug": "drupal-major-core",
-            "matchDatasources": [
-                "packagist"
-            ],
-            "matchUpdateTypes": [
-                "major"
-            ],
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended",
-                "drupal/core-dev"
-            ],
-            "enabled": false
-        },
-        {
-            "groupName": "Theme packages",
-            "groupSlug": "theme-npm",
-            "branchName": "deps/theme-npm",
-            "group": {
-                "commitMessageTopic": "NPM dependencies"
-            },
-            "schedule": ["after 6pm", "before 6am"],
-            "matchDatasources": [
-                "npm"
             ],
             "separateMinorPatch": false,
-            "matchPackagePatterns": [
-                ".*"
-            ],
-            "vulnerabilityAlerts": {
-                "enabled": true,
-                "labels": ["security"],
-                "automerge": true
-            },
-            "enabled": true
-        },
-        {
-            "groupName": "Docker images excluded",
-            "branchName": "deps/docker-images-excluded",
-            "matchManagers": [
-                "dockerfile",
-                "docker-compose"
-            ],
             "matchPackageNames": [
-                "selenium/standalone-chrome",
-                "seleniarm/standalone-chromium"
-            ],
-            "enabled": false
+                "/.*/",
+                "!drupal/core-composer-scaffold",
+                "!drupal/core-project-message",
+                "!drupal/core-recommended",
+                "!drupal/core-dev"
+            ]
         },
         {
-            "groupName": "Docker images",
-            "groupSlug": "docker",
-            "branchName": "deps/docker",
-            "group": {
-                "commitMessageTopic": "Docker dependencies"
-            },
-            "schedule": ["after 6pm", "before 6am"],
-            "matchManagers": [
-                "dockerfile",
-                "docker-compose"
+            "groupName": "Minor and Patch Core",
+            "groupSlug": "drupal-minor-patch-core",
+            "schedule": [
+                "before 2am"
+            ],
+            "matchDatasources": [
+                "packagist"
             ],
             "matchUpdateTypes": [
                 "patch",
-                "minor",
-                "major"
+                "minor"
             ],
-            "excludePackageNames": [
-                "selenium/standalone-chrome",
-                "seleniarm/standalone-chromium"
+            "matchDepNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended",
+                "drupal/core-dev"
+            ]
+        },
+        {
+            "groupName": "Container images",
+            "groupSlug": "docker",
+            "schedule": [
+                "before 3am"
             ],
-            "automerge": true
+            "matchManagers": [
+                "dockerfile",
+                "docker-compose",
+                "custom.regex"
+            ]
+        },
+        {
+            "groupName": "GitHub Actions",
+            "groupSlug": "github-actions",
+            "schedule": [
+                "before 3am"
+            ],
+            "matchManagers": [
+                "github-actions"
+            ]
         }
     ],
-    "composerIgnorePlatformReqs": ["ext-*", "lib-*"],
-    "composer": {
-        "enabled": true
-    }
+    "customManagers": [
+        {
+            "customType": "regex",
+            "fileMatch": [
+                "^docker-compose\\.yml$"
+            ],
+            "matchStrings": [
+                "IMAGE:\\s*\"?\\${(?:.*):-(?<depName>.*?):(?<currentValue>.*?)(?:\\@sha256:.*)?}\"?"
+            ],
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "docker"
+        }
+    ]
 }
