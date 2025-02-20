@@ -12,7 +12,24 @@ declare(strict_types=1);
 
 namespace SalsaDigital\ScaffoldToolkit;
 
+require_once __DIR__ . '/includes/ScaffoldInstallerTrait.php';
+require_once __DIR__ . '/includes/hosting/LagoonIntegration.php';
+require_once __DIR__ . '/includes/ci/CircleCiIntegration.php';
+require_once __DIR__ . '/includes/package_managers/RenovateBotIntegration.php';
+require_once __DIR__ . '/includes/scaffold/DrevOpsIntegration.php';
+
+use SalsaDigital\ScaffoldToolkit\Hosting\LagoonIntegration;
+use SalsaDigital\ScaffoldToolkit\CI\CircleCiIntegration;
+use SalsaDigital\ScaffoldToolkit\PackageManagers\RenovateBotIntegration;
+use SalsaDigital\ScaffoldToolkit\Scaffold\DrevOpsIntegration;
+
 class ScaffoldInstaller {
+    use ScaffoldInstallerTrait;
+    use LagoonIntegration;
+    use CircleCiIntegration;
+    use RenovateBotIntegration;
+    use DrevOpsIntegration;
+
     private string $version = '1.0.22';
     private bool $dryRun = false;
     private bool $force = false;
@@ -730,7 +747,13 @@ EOD;
     private function installFiles(): void {
         $files = $this->getFileList();
         foreach ($files as $file) {
-            $this->processFile($file);
+            if (str_starts_with($file['source'], 'renovatebot/')) {
+                $this->processRenovateBotFile($file);
+            } elseif (str_starts_with($file['source'], 'scaffold/drevops/')) {
+                $this->processDrevOpsFile($file);
+            } else {
+                $this->processFile($file);
+            }
         }
     }
 
@@ -740,7 +763,6 @@ EOD;
     private function getFileList(): array {
         $files = [];
         
-        // CI/CD configuration files
         if ($this->ciType === 'circleci') {
             $files[] = [
                 'source' => "ci/circleci/{$this->hostingType}/config.yml",
@@ -748,13 +770,11 @@ EOD;
             ];
         }
 
-        // RenovateBot configuration is always installed
-        $files[] = [
-            'source' => "renovatebot/{$this->distributionType}/renovate.json",
-            'target' => 'renovate.json',
-        ];
-
-        return $files;
+        return array_merge(
+            $files,
+            $this->getRenovateBotFiles(),
+            $this->getDrevOpsFiles()
+        );
     }
 
     /**
@@ -964,18 +984,27 @@ EOD;
         echo "=====================\n";
         echo "The following changes will be made:\n\n";
 
-        // List CI/CD configuration files
-        if ($this->ciType === 'circleci') {
-            echo "1. Install CircleCI configuration for {$this->hostingType}\n";
+        $step = 1;
+
+        if ($this->scaffoldType === 'drevops') {
+            echo "{$step}. Install DrevOps configuration files:\n";
+            echo "   - phpmd.xml\n";
+            echo "   - phpunit.xml\n";
+            $step++;
         }
 
-        // List RenovateBot configuration
-        echo "2. Install RenovateBot configuration\n";
+        if ($this->ciType === 'circleci') {
+            echo "{$step}. Install CircleCI configuration for {$this->hostingType}\n";
+            $step++;
+        }
 
-        // List scripts and twig_cs.php changes if selected
+        echo "{$step}. Install RenovateBot configuration\n";
+        $step++;
+
         if ($this->shouldUpdateScripts) {
-            echo "3. Replace existing scripts directory with new version\n";
-            echo "4. Update .twig_cs.php file\n";
+            echo "{$step}. Replace existing scripts directory with new version\n";
+            $step++;
+            echo "{$step}. Update .twig_cs.php file\n";
         }
 
         echo "\nWould you like to proceed with these changes? [Y/n] ";
