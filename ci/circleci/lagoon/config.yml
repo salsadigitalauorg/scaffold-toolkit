@@ -15,6 +15,10 @@ aliases:
   # SSH key fingerprint to deploy code.
   - &deploy_ssh_fingerprint "${SCAFFOLD_TOOLKIT_SSH_FINGERPRINT}"
 
+  # SSH key fingerprint to deploy code.
+  # This SSH key is used to push Drupal configuration changes to the repo.
+  - &renovate_ssh_fingerprint "${SCAFFOLD_TOOLKIT_SSH_RENOVATE_FINGERPRINT}"
+
   # Timezone of the runner container to ensure that DB cache key uses correct date.
   # @see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   # Replace this timezone with your own.
@@ -398,6 +402,9 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
+      - add_ssh_keys:
+          fingerprints:
+            - *renovate_ssh_fingerprint
       - checkout
       - *step_process_codebase
       - *step_setup_remote_docker

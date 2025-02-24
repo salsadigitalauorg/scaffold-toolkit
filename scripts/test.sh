@@ -11,7 +11,7 @@ test_status=0
 # Test dry run mode
 test_dry_run() {
   print_header "Testing dry run mode..."
-  if run_installer "/workspace/test1" --dry-run --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+  if run_installer "/workspace/test1" --dry-run --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}" --ssh-renovate-fingerprint="${TEST_SSH_FINGERPRINT}"; then
     print_success "Test passed: Dry run mode"
   else
     print_error "Test failed: Dry run mode"
@@ -22,7 +22,7 @@ test_dry_run() {
 # Test CircleCI with Lagoon
 test_circleci_lagoon() {
   print_header "Testing CircleCI with Lagoon (normal installation)..."
-  if run_installer "/workspace/test2" --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+  if run_installer "/workspace/test2" --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}" --ssh-renovate-fingerprint="${TEST_SSH_FINGERPRINT}"; then
     print_success "Test passed: CircleCI with Lagoon"
   else
     print_error "Test failed: CircleCI with Lagoon"
@@ -52,10 +52,21 @@ test_circleci_no_ssh() {
   fi
 }
 
+# Test CircleCI with Lagoon without RenovateBot SSH fingerprint
+test_circleci_lagoon_no_renovate_ssh() {
+  print_header "Testing CircleCI with Lagoon without RenovateBot SSH fingerprint (should fail)..."
+  if ! run_installer "/workspace/test5" --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+    print_success "Test passed: CircleCI with Lagoon correctly requires RenovateBot SSH fingerprint"
+  else
+    print_error "Test failed: CircleCI with Lagoon should have required RenovateBot SSH fingerprint"
+    test_status=1
+  fi
+}
+
 # Test GitHub Actions with Lagoon
 test_github_lagoon() {
   print_header "Testing GitHub Actions with Lagoon (should show not available message and exit)..."
-  if ! run_installer "/workspace/test5" --scaffold=drevops --ci=github --hosting=lagoon; then
+  if ! run_installer "/workspace/test6" --scaffold=drevops --ci=github --hosting=lagoon; then
     print_success "Test passed: GitHub Actions with Lagoon correctly shows not available message"
   else
     print_error "Test failed: GitHub Actions with Lagoon should have failed"
@@ -68,11 +79,11 @@ test_force_install() {
   print_header "Testing force installation..."
   
   # First install normally
-  run_installer "/workspace/test6" --scaffold=drevops --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
+  run_installer "/workspace/test7" --scaffold=drevops --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
   first_install=$?
   
   # Then try to install again with force
-  run_installer "/workspace/test6" --scaffold=drevops --ci=circleci --hosting=acquia --force --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
+  run_installer "/workspace/test7" --scaffold=drevops --ci=circleci --hosting=acquia --force --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
   second_install=$?
   
   if [ $first_install -eq 0 ] && [ $second_install -eq 0 ]; then
@@ -86,7 +97,7 @@ test_force_install() {
 # Test Vortex scaffold
 test_vortex() {
   print_header "Testing Vortex scaffold type (should show not available message and exit)..."
-  if ! run_installer "/workspace/test7" --scaffold=vortex --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+  if ! run_installer "/workspace/test8" --scaffold=vortex --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
     print_success "Test passed: Vortex scaffold correctly shows not available message"
   else
     print_error "Test failed: Vortex scaffold should have failed"
@@ -97,7 +108,7 @@ test_vortex() {
 # Test GovCMS PaaS scaffold
 test_govcms() {
   print_header "Testing GovCMS PaaS scaffold type (should show not available message and exit)..."
-  if ! run_installer "/workspace/test8" --scaffold=govcms --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+  if ! run_installer "/workspace/test9" --scaffold=govcms --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"; then
     print_success "Test passed: GovCMS PaaS scaffold correctly shows not available message"
   else
     print_error "Test failed: GovCMS PaaS scaffold should have failed"
@@ -124,6 +135,7 @@ test_dry_run
 test_circleci_lagoon
 test_circleci_acquia
 test_circleci_no_ssh
+test_circleci_lagoon_no_renovate_ssh
 test_github_lagoon
 test_force_install
 test_vortex

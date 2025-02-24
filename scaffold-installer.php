@@ -139,7 +139,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.25';
+    private string $version = '1.0.26';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -155,6 +155,7 @@ class ScaffoldInstaller {
     private ?string $scaffoldType = null;
     private ?string $distributionType = null;
     private ?string $sshFingerprint = null;
+    private ?string $sshRenovateFingerprint = null;
     private bool $shouldUpdateScripts = false;
     private array $changedFiles = [];
     private array $savedValues = [];
@@ -193,6 +194,7 @@ class ScaffoldInstaller {
         $this->scaffoldType = $options['scaffold'] ?? null;
         $this->distributionType = $options['distribution'] ?? 'drupal';
         $this->sshFingerprint = $options['ssh-fingerprint'] ?? null;
+        $this->sshRenovateFingerprint = $options['ssh-renovate-fingerprint'] ?? null;
         $this->configFile = $this->targetDir . '/.scaffold-toolkit.json';
         $this->installerDir = $this->targetDir . '/.scaffold-installer';
         
@@ -235,6 +237,9 @@ class ScaffoldInstaller {
                     if (!$this->sshFingerprint && isset($this->savedValues['ssh_fingerprint'])) {
                         $this->sshFingerprint = $this->savedValues['ssh_fingerprint'];
                     }
+                    if (!$this->sshRenovateFingerprint && isset($this->savedValues['ssh_renovate_fingerprint'])) {
+                        $this->sshRenovateFingerprint = $this->savedValues['ssh_renovate_fingerprint'];
+                    }
                 }
             }
         }
@@ -253,6 +258,7 @@ class ScaffoldInstaller {
             'ci_type' => $this->ciType,
             'hosting_type' => $this->hostingType,
             'ssh_fingerprint' => $this->sshFingerprint,
+            'ssh_renovate_fingerprint' => $this->sshRenovateFingerprint,
             'lagoon_cluster' => $this->lagoonCluster,
         ];
 
@@ -282,10 +288,20 @@ class ScaffoldInstaller {
         // 2.1. If CircleCI was selected, prompt for the SSH MD5 hash
         if ($this->ciType === 'circleci') {
             $this->sshFingerprint = $this->promptSshFingerprint();
+
+            // 2.2. If CircleCI and Lagoon are selected, prompt for RenovateBot SSH fingerprint
+            if ($this->hostingType === 'lagoon') {
+                $this->sshRenovateFingerprint = $this->promptSshRenovateFingerprint();
+            }
         }
 
         // 3. Select hosting environment
         $this->selectHostingType();
+
+        // 3.1. If CircleCI and Lagoon were selected, prompt for RenovateBot SSH fingerprint
+        if ($this->ciType === 'circleci' && $this->hostingType === 'lagoon' && !$this->sshRenovateFingerprint) {
+            $this->sshRenovateFingerprint = $this->promptSshRenovateFingerprint();
+        }
 
         // 4. Scripts and twig_cs.php update prompt
         if (!$this->nonInteractive) {
@@ -1468,6 +1484,38 @@ EOD;
 
         return $fingerprint;
     }
+
+    private function promptSshRenovateFingerprint(): string {
+        if ($this->nonInteractive) {
+            throw new \Exception('SSH fingerprint is required for RenovateBot in non-interactive mode. Use --ssh-renovate-fingerprint option.');
+        }
+
+        echo "\nRenovateBot requires an SSH key fingerprint for deployment.\n";
+        echo "Please follow these steps to set up your SSH key:\n";
+        echo "1. Go to RenovateBot project settings\n";
+        echo "2. Navigate to SSH Keys section\n";
+        echo "3. Add a new SSH key or use an existing one\n";
+        echo "4. Copy the fingerprint (MD5 format)\n\n";
+        
+        if (isset($this->savedValues['ssh_renovate_fingerprint'])) {
+            echo "Previously used fingerprint: " . colorize($this->savedValues['ssh_renovate_fingerprint']) . "\n";
+            echo "Press Enter to use the previous value, or enter a new fingerprint: ";
+        } else {
+            echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
+        }
+        
+        $fingerprint = trim(fgets(STDIN));
+        
+        if ($fingerprint === '' && isset($this->savedValues['ssh_renovate_fingerprint'])) {
+            return $this->savedValues['ssh_renovate_fingerprint'];
+        }
+        
+        if (!preg_match('/^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$/', $fingerprint)) {
+            throw new \Exception('Invalid SSH key fingerprint format. It should be in MD5 format (16 pairs of hexadecimal digits separated by colons).');
+        }
+
+        return $fingerprint;
+    }
 }
 
 // Parse command line arguments
@@ -1486,7 +1534,8 @@ $options = getopt('', [
     'github-branch:',
     'scaffold:',
     'distribution:',
-    'ssh-fingerprint:'
+    'ssh-fingerprint:',
+    'ssh-renovate-fingerprint:'
 ]);
 
 try {
