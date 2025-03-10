@@ -528,6 +528,34 @@ jobs:
       - run: renovate-config-validator
       - run: renovate
 
+  # Security scanning job to detect secrets and sensitive information
+  scan_secrets:
+    <<: *runner_config
+    steps:
+      - checkout
+      - *step_setup_remote_docker
+      - run:
+          name: Make scripts executable
+          command: chmod +x ./scripts/custom/scan-secrets.sh
+      - run:
+          name: Scan for secrets
+          command: ./scripts/custom/scan-secrets.sh
+          # Allow the script to fail but still capture artifacts
+          when: always
+      - store_artifacts:
+          path: /tmp/artifacts/security-scan
+          destination: security-scan
+      - run:
+          name: Check scan results
+          command: |
+            if [ -f /tmp/artifacts/security-scan/scan_exit_code ]; then
+              exit_code=$(cat /tmp/artifacts/security-scan/scan_exit_code)
+              if [ "$exit_code" -ne 0 ]; then
+                echo "Security scan failed with exit code $exit_code"
+                exit $exit_code
+              fi
+            fi
+
 
 ################################################################################
 # WORKFLOWS
@@ -538,7 +566,13 @@ workflows:
   # Commit workflow. Runs for every commit push to the remote repository.
   commit:
     jobs:
+      - scan_secrets:
+          filters:
+            tags:
+              only: /.*/
       - database:
+          requires:
+            - scan_secrets
           filters:
             tags:
               only: /.*/
