@@ -26,6 +26,11 @@
     # Version: 1.0.0
     # Customized: false
     ```
+    - Security Scanning:
+      - Includes TruffleHog integration for secret detection
+      - Automatically scans codebase for secrets and sensitive information
+      - Prevents accidental commit of credentials and sensitive data
+      - Configurable exclusion patterns via .circleci/trufflehog-exclusions.txt
 
 2. Installation Process
    - Source Directory Handling:

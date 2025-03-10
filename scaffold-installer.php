@@ -139,7 +139,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.26';
+    private string $version = '1.0.27';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -885,6 +885,18 @@ EOD;
                 'source' => "ci/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
+            
+            // Add trufflehog-exclusions.txt file for secret scanning
+            $files[] = [
+                'source' => "ci/circleci/{$this->hostingType}/trufflehog-exclusions.txt",
+                'target' => '.circleci/trufflehog-exclusions.txt',
+            ];
+            
+            // Add scan-secrets.sh script
+            $files[] = [
+                'source' => 'scripts/custom/scan-secrets.sh',
+                'target' => 'scripts/custom/scan-secrets.sh',
+            ];
         }
 
         return array_merge(
@@ -948,6 +960,15 @@ EOD;
             if (!file_put_contents($targetFile, $content)) {
                 throw new \RuntimeException("Failed to write to {$targetFile}");
             }
+            
+            // Make shell scripts executable
+            if (pathinfo($targetFile, PATHINFO_EXTENSION) === 'sh') {
+                if (!$this->dryRun) {
+                    chmod($targetFile, 0755);
+                    echo "Made {$targetFile} executable\n";
+                }
+            }
+            
             echo "Installed {$targetFile}\n";
         } catch (\Exception $e) {
             $this->addError("Error processing {$targetFile}: " . $e->getMessage());

@@ -1,0 +1,62 @@
+# Version: 1.0.0
+# Customized: false
+
+# Lock files containing hashes
+.*\.lock
+package-lock.json
+composer.phar
+
+# Minified files
+.*\.min\.(js|css)
+
+# Build directories
+(dist|build|_build|storybook-static)\/.*
+
+# Font and media files
+.*\.(svg|ttf|woff|woff2|eot) 
+
+# Configuration files
+.*settings\.php
+config\/.*
+.*\.env.*
+.*\.yml
+.*\.ini
+.*\.xml
+.*\.cache
+
+# Drupal directories
+web\/.*
+vendor\/.*
+node_modules\/.*
+bower_components\/.*
+.*\/vendor\/.*
+.*\/node_modules\/.*
+
+# Test directories and files
+.*\/(test|tests|fixtures)\/.*
+
+# Log files
+.*\.log.*
+.*debug\.log.*
+reports\/.*
+
+# Git and IDE related
+\.git\/.*
+\.idea\/.*
+\.vscode\/.*
+\.DS_Store
+workspace\.xml
+httpRequests\/
+
+# Temporary and cache directories
+.*\/(cache|logs|tmp|sessions)\/.*
+.*\.sass-cache
+
+# Specific files to exclude
+sanitize\.sql
+scripts\/sanitize\.sql
+autoload\.php
+
+# Drupal specific patterns
+web\/sites\/default\/files\/.*
+web\/uploads\/.* 
