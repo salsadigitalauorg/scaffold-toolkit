@@ -888,7 +888,7 @@ EOD;
             
             // Add trufflehog-exclusions.txt file for secret scanning
             $files[] = [
-                'source' => '.circleci/trufflehog-exclusions.txt',
+                'source' => "ci/circleci/{$this->hostingType}/trufflehog-exclusions.txt",
                 'target' => '.circleci/trufflehog-exclusions.txt',
             ];
             
