@@ -23,6 +23,14 @@ test_dry_run() {
 test_circleci_lagoon() {
   print_header "Testing CircleCI with Lagoon (normal installation)..."
   if run_installer "/workspace/test2" --scaffold=drevops --ci=circleci --hosting=lagoon --ssh-fingerprint="${TEST_SSH_FINGERPRINT}" --ssh-renovate-fingerprint="${TEST_SSH_FINGERPRINT}"; then
+    # Check for the existence of .ahoy.yml file
+    if dc_exec test -f "/workspace/test2/.ahoy.yml"; then
+      print_success "Test passed: CircleCI with Lagoon (.ahoy.yml installed)"
+    else
+      print_error "Test failed: CircleCI with Lagoon (.ahoy.yml not found)"
+      test_status=1
+      return
+    fi
     print_success "Test passed: CircleCI with Lagoon"
   else
     print_error "Test failed: CircleCI with Lagoon"
@@ -77,15 +85,15 @@ test_github_lagoon() {
 # Test force installation
 test_force_install() {
   print_header "Testing force installation..."
-  
+
   # First install normally
   run_installer "/workspace/test7" --scaffold=drevops --ci=circleci --hosting=acquia --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
   first_install=$?
-  
+
   # Then try to install again with force
   run_installer "/workspace/test7" --scaffold=drevops --ci=circleci --hosting=acquia --force --ssh-fingerprint="${TEST_SSH_FINGERPRINT}"
   second_install=$?
-  
+
   if [ $first_install -eq 0 ] && [ $second_install -eq 0 ]; then
     print_success "Test passed: Force installation"
   else
@@ -140,4 +148,4 @@ test_github_lagoon
 test_force_install
 test_vortex
 test_govcms
-show_results 
+show_results

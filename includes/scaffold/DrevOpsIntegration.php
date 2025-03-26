@@ -23,6 +23,10 @@ trait DrevOpsIntegration {
                 'source' => 'scaffold/drevops/rector.php',
                 'target' => 'rector.php',
             ],
+            [
+                'source' => 'scaffold/drevops/.ahoy.yml',
+                'target' => '.ahoy.yml',
+            ],
         ];
 
         if ($this->shouldUpdateScripts) {
@@ -37,7 +41,7 @@ trait DrevOpsIntegration {
 
     private function processDrevOpsFile(array $file): void {
         $targetFile = $this->targetDir . '/' . $file['target'];
-        
+
         echo "Processing {$targetFile}...\n";
 
         try {
@@ -72,7 +76,7 @@ trait DrevOpsIntegration {
             if (file_exists($targetFile) && !$this->force) {
                 $currentVersion = $this->getFileVersion($targetFile);
                 $newVersion = $this->getVersionFromContent($content);
-                
+
                 if ($currentVersion && !$this->shouldOverwrite($currentVersion, $newVersion)) {
                     echo "Skipping {$targetFile} (current version: {$currentVersion})\n";
                     return;
@@ -112,4 +116,4 @@ trait DrevOpsIntegration {
 
         return $webroot;
     }
-} 
+}

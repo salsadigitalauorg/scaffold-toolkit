@@ -37,13 +37,13 @@ function setupInstaller(string $targetDir): void {
 
     // Download repository archive
     $url = 'https://api.github.com/repos/salsadigitalauorg/scaffold-toolkit/tarball/main';
-    
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-    
+
     $tarball = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -139,7 +139,7 @@ class ScaffoldInstaller {
     use RenovateBotIntegration;
     use DrevOpsIntegration;
 
-    private string $version = '1.0.27';
+    private string $version = '1.0.28';
     private bool $dryRun = false;
     private bool $force = false;
     private bool $nonInteractive = false;
@@ -197,15 +197,15 @@ class ScaffoldInstaller {
         $this->sshRenovateFingerprint = $options['ssh-renovate-fingerprint'] ?? null;
         $this->configFile = $this->targetDir . '/.scaffold-toolkit.json';
         $this->installerDir = $this->targetDir . '/.scaffold-installer';
-        
+
         if (isset($options['version'])) {
             $this->version = $options['version'];
         }
-        
+
         if (isset($options['github-repo'])) {
             $this->githubRepo = $options['github-repo'];
         }
-        
+
         if (isset($options['github-branch'])) {
             $this->githubBranch = $options['github-branch'];
         }
@@ -223,7 +223,7 @@ class ScaffoldInstaller {
                 $values = json_decode($content, true);
                 if (is_array($values)) {
                     $this->savedValues = $values;
-                    
+
                     // Load saved values if not provided in options
                     if (!$this->scaffoldType && isset($this->savedValues['scaffold_type'])) {
                         $this->scaffoldType = $this->savedValues['scaffold_type'];
@@ -284,7 +284,7 @@ class ScaffoldInstaller {
 
         // 2. Select CI/CD integration
         $this->selectCiType();
-        
+
         // 2.1. If CircleCI was selected, prompt for the SSH MD5 hash
         if ($this->ciType === 'circleci') {
             $this->sshFingerprint = $this->promptSshFingerprint();
@@ -324,7 +324,7 @@ class ScaffoldInstaller {
         }
 
         $this->saveValues();
-        
+
         // 6. Installation summary
         $this->printSummary();
         $this->cleanup();
@@ -361,7 +361,7 @@ class ScaffoldInstaller {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-        
+
         $tarball = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -473,14 +473,14 @@ class ScaffoldInstaller {
             foreach ($choices as $index => $choice) {
                 $prefix = ($index === $currentSelection) ? '→ ' : '  ';
                 $text = $choice;
-                
+
                 // Color the text if it's selected or is the default
                 if ($index === $currentSelection) {
                     $text = colorize($text);
                 } elseif ($default !== null && strtolower($choice) === strtolower($default)) {
                     $text = colorize($text, BLUE);
                 }
-                
+
                 echo $prefix . $text . "\n";
             }
         };
@@ -494,7 +494,7 @@ class ScaffoldInstaller {
         system('stty -icanon');
         while (true) {
             $renderOptions($currentSelection);
-            
+
             $key = fread(STDIN, 3);
             switch ($key) {
                 case "\033[A": // Up arrow
@@ -527,10 +527,10 @@ class ScaffoldInstaller {
             ];
 
             $default = isset($this->savedValues['scaffold_type']) ? ucfirst($this->savedValues['scaffold_type']) : 'DrevOps';
-            
+
             echo "Select scaffold type:\n";
             $choice = $this->arrowKeySelect($options, $default);
-            
+
             switch ($choice) {
                 case 'DrevOps':
                     $this->scaffoldType = 'drevops';
@@ -566,10 +566,10 @@ class ScaffoldInstaller {
             ];
 
             $default = isset($this->savedValues['ci_type']) ? ucfirst($this->savedValues['ci_type']) : 'CircleCI';
-            
+
             echo "Select CI/CD integration:\n";
             $choice = $this->arrowKeySelect($options, $default);
-            
+
             if ($choice === 'GitHub Actions (Coming soon)') {
                 echo "\nNOTE: GitHub Actions integration is not yet available.\n";
                 echo "Only CircleCI is currently supported.\n\n";
@@ -606,12 +606,12 @@ class ScaffoldInstaller {
             ];
 
             $default = isset($this->savedValues['hosting_type']) ? ucfirst($this->savedValues['hosting_type']) : 'Lagoon';
-            
+
             echo "Select hosting environment:\n";
             $choice = $this->arrowKeySelect($options, $default);
-            
+
             $this->hostingType = strtolower($choice);
-            
+
             if ($this->hostingType === 'lagoon') {
                 $this->selectLagoonCluster();
             }
@@ -635,10 +635,10 @@ class ScaffoldInstaller {
         ];
 
         $default = isset($this->savedValues['lagoon_cluster']) ? ucfirst($this->savedValues['lagoon_cluster']) : 'SalsaDigital';
-        
+
         echo "\nSelect Lagoon cluster:\n";
         $choice = $this->arrowKeySelect($options, $default);
-        
+
         $this->lagoonCluster = strtolower($choice === 'SalsaDigital' ? 'salsadigital' : 'other');
 
         if ($this->lagoonCluster === 'salsadigital') {
@@ -701,7 +701,7 @@ class ScaffoldInstaller {
         // Ensure DREVOPS_DEPLOY_TYPES is correctly set
         // First remove any existing DREVOPS_DEPLOY_TYPE (singular) setting
         $content = preg_replace('/^DREVOPS_DEPLOY_TYPE=.*$/m', '', $content);
-        
+
         // Then handle DREVOPS_DEPLOY_TYPES (plural)
         if (!preg_match('/^DREVOPS_DEPLOY_TYPES=/m', $content)) {
             $updatedVars['DREVOPS_DEPLOY_TYPES'] = 'lagoon';
@@ -811,13 +811,13 @@ EOD;
     private function validateExistingFiles(): void {
         $files = $this->getFileList();
         $existingFiles = [];
-        
+
         foreach ($files as $file) {
             if (file_exists($file['target'])) {
                 $existingFiles[] = $file['target'];
             }
         }
-        
+
         if (!empty($existingFiles) && !$this->force) {
             if ($this->nonInteractive) {
                 echo "\nError: Files exist and --force option was not used.\n";
@@ -832,14 +832,14 @@ EOD;
      */
     private function ensureDirectoriesExist(): void {
         $directories = [];
-        
+
         // Only create CI/CD directories if needed
         if ($this->ciType === 'circleci') {
             $directories[] = '.circleci';
         } else if ($this->ciType === 'github' && $this->hostingType !== 'lagoon') {
             $directories[] = '.github/workflows';
         }
-        
+
         // Always create renovatebot directory
         $directories[] = 'renovatebot';
 
@@ -879,19 +879,19 @@ EOD;
      */
     private function getFileList(): array {
         $files = [];
-        
+
         if ($this->ciType === 'circleci') {
             $files[] = [
                 'source' => "ci/circleci/{$this->hostingType}/config.yml",
                 'target' => '.circleci/config.yml',
             ];
-            
+
             // Add trufflehog-exclusions.txt file for secret scanning
             $files[] = [
                 'source' => "ci/circleci/{$this->hostingType}/trufflehog-exclusions.txt",
                 'target' => '.circleci/trufflehog-exclusions.txt',
             ];
-            
+
             // Add scan-secrets.sh script
             $files[] = [
                 'source' => 'scripts/custom/scan-secrets.sh',
@@ -911,7 +911,7 @@ EOD;
      */
     private function processFile(array $file): void {
         $targetFile = $this->targetDir . '/' . $file['target'];
-        
+
         echo "Processing {$targetFile}...\n";
 
         try {
@@ -950,7 +950,7 @@ EOD;
             if (file_exists($targetFile) && !$this->force) {
                 $currentVersion = $this->getFileVersion($targetFile);
                 $newVersion = $this->getVersionFromContent($content);
-                
+
                 if ($currentVersion && !$this->shouldOverwrite($currentVersion, $newVersion)) {
                     echo "Skipping {$targetFile} (current version: {$currentVersion})\n";
                     return;
@@ -960,7 +960,7 @@ EOD;
             if (!file_put_contents($targetFile, $content)) {
                 throw new \RuntimeException("Failed to write to {$targetFile}");
             }
-            
+
             // Make shell scripts executable
             if (pathinfo($targetFile, PATHINFO_EXTENSION) === 'sh') {
                 if (!$this->dryRun) {
@@ -968,7 +968,7 @@ EOD;
                     echo "Made {$targetFile} executable\n";
                 }
             }
-            
+
             echo "Installed {$targetFile}\n";
         } catch (\Exception $e) {
             $this->addError("Error processing {$targetFile}: " . $e->getMessage());
@@ -983,7 +983,7 @@ EOD;
      */
     private function replaceRepositoryPlaceholder(string $content): string {
         $placeholder = '[SCAFFOLD_TOOLKIT_REPOSITORY]';
-        
+
         if ($this->ciType === 'circleci') {
             // CircleCI uses ${CIRCLE_PROJECT_REPONAME}
             $replacement = '${CIRCLE_PROJECT_REPONAME}';
@@ -991,7 +991,7 @@ EOD;
             // GitHub Actions uses ${{ github.repository }}
             $replacement = '${{ github.repository }}';
         }
-        
+
         return str_replace($placeholder, $replacement, $content);
     }
 
@@ -1002,7 +1002,7 @@ EOD;
         if (!$this->sshFingerprint) {
             throw new \RuntimeException('SSH fingerprint is required for CircleCI configuration.');
         }
-        
+
         return str_replace('${SCAFFOLD_TOOLKIT_SSH_FINGERPRINT}', $this->sshFingerprint, $content);
     }
 
@@ -1016,13 +1016,13 @@ EOD;
         }
 
         $url = "https://raw.githubusercontent.com/{$this->githubRepo}/{$this->githubBranch}/{$source}";
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-        
+
         $content = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -1051,7 +1051,7 @@ EOD;
         if (!file_exists($file)) {
             return null;
         }
-        
+
         $content = file_get_contents($file);
         return $this->getVersionFromContent($content);
     }
@@ -1091,7 +1091,7 @@ EOD;
         echo "This is recommended as the tooling depends on certain versions of DrevOps scaffold.\n";
         echo "Missing this step may trigger broken pipelines.\n\n";
         echo "Would you like to proceed with updating scripts directory and .twig_cs.php? [Y/n] ";
-        
+
         $answer = trim(fgets(STDIN)) ?: 'y';
         $this->shouldUpdateScripts = strtolower($answer) !== 'n';
     }
@@ -1129,7 +1129,7 @@ EOD;
         }
 
         echo "\nWould you like to proceed with these changes? [Y/n] ";
-        
+
         $answer = trim(fgets(STDIN)) ?: 'y';
         return strtolower($answer) !== 'n';
     }
@@ -1185,7 +1185,7 @@ EOD;
                     if (!is_dir($targetScriptsDir) && !mkdir($targetScriptsDir, 0755, true)) {
                         throw new \RuntimeException("Failed to create scripts directory");
                     }
-                    
+
                     // Download directly to the target directory
                     $this->downloadDirectoryRecursive('scripts', $targetScriptsDir);
                 }
@@ -1228,7 +1228,7 @@ return Twigcs\Config\Config::create()
   ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/{$webroot}/modules/custom'))
   ->addFinder(Twigcs\Finder\TemplateFinder::create()->in(__DIR__ . '/{$webroot}/themes/custom'));
 EOD;
-            
+
             if (file_put_contents($targetTwigCs, $twigCsContent) === false) {
                 throw new \RuntimeException("Failed to write .twig_cs.php");
             }
@@ -1282,7 +1282,7 @@ EOD;
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/vnd.github.v3+json']);
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -1336,7 +1336,7 @@ EOD;
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
                 curl_setopt($ch, CURLOPT_USERAGENT, 'Scaffold Toolkit Installer');
-                
+
                 $content = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
@@ -1429,7 +1429,7 @@ EOD;
             echo colorize("Lagoon Cluster: " . ucfirst($this->lagoonCluster), BLUE) . "\n";
         }
         echo colorize("Mode: " . ($this->dryRun ? 'Dry Run' : 'Live'), BLUE) . "\n";
-        
+
         if (!empty($this->changedFiles)) {
             echo "\nChanged files:\n";
             foreach ($this->changedFiles as $file) {
@@ -1443,7 +1443,7 @@ EOD;
                 echo "- {$error}\n";
             }
         }
-        
+
         if ($this->dryRun) {
             echo "\nThis was a dry run. No files were modified.\n";
             echo "Run without --dry-run to apply changes.\n";
@@ -1485,20 +1485,20 @@ EOD;
         echo "2. Navigate to SSH Keys section\n";
         echo "3. Add a new SSH key or use an existing one\n";
         echo "4. Copy the fingerprint (MD5 format)\n\n";
-        
+
         if (isset($this->savedValues['ssh_fingerprint'])) {
             echo "Previously used fingerprint: " . colorize($this->savedValues['ssh_fingerprint']) . "\n";
             echo "Press Enter to use the previous value, or enter a new fingerprint: ";
         } else {
             echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
         }
-        
+
         $fingerprint = trim(fgets(STDIN));
-        
+
         if ($fingerprint === '' && isset($this->savedValues['ssh_fingerprint'])) {
             return $this->savedValues['ssh_fingerprint'];
         }
-        
+
         if (!preg_match('/^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$/', $fingerprint)) {
             throw new \Exception('Invalid SSH key fingerprint format. It should be in MD5 format (16 pairs of hexadecimal digits separated by colons).');
         }
@@ -1517,20 +1517,20 @@ EOD;
         echo "2. Navigate to SSH Keys section\n";
         echo "3. Add a new SSH key or use an existing one\n";
         echo "4. Copy the fingerprint (MD5 format)\n\n";
-        
+
         if (isset($this->savedValues['ssh_renovate_fingerprint'])) {
             echo "Previously used fingerprint: " . colorize($this->savedValues['ssh_renovate_fingerprint']) . "\n";
             echo "Press Enter to use the previous value, or enter a new fingerprint: ";
         } else {
             echo "Enter the SSH key fingerprint (e.g., 01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef): ";
         }
-        
+
         $fingerprint = trim(fgets(STDIN));
-        
+
         if ($fingerprint === '' && isset($this->savedValues['ssh_renovate_fingerprint'])) {
             return $this->savedValues['ssh_renovate_fingerprint'];
         }
-        
+
         if (!preg_match('/^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$/', $fingerprint)) {
             throw new \Exception('Invalid SSH key fingerprint format. It should be in MD5 format (16 pairs of hexadecimal digits separated by colons).');
         }
@@ -1565,4 +1565,4 @@ try {
 } catch (\Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
     exit(1);
-} 
+}
