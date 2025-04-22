@@ -38,7 +38,7 @@ aliases:
   # the bot ran at least once without errors.
   - &renovatebot_dry_run false
   # The branch to run RenovateBot on.
-  - &renovatebot_branch production
+  - &renovatebot_branch master
 
   #-----------------------------------------------------------------------------
   # Optional variables.
@@ -67,7 +67,7 @@ aliases:
 
   # Which branch to use for a source of the DB caches. Usually, it is the default
   # project branch or *nightly_db_branch (see below).
-  - &drevops_ci_db_cache_branch "production"
+  - &drevops_ci_db_cache_branch "master"
 
   # Database cache directory.
   - &db_cache_dir /root/project/.data
@@ -77,7 +77,7 @@ aliases:
   - &nightly_db_schedule "0 18 * * *"
 
   # The branch used for nightly builds.
-  - &nightly_db_branch production
+  - &nightly_db_branch "master"
 
   # Set the location of Drupal configuration folder for export, for renovatebot.
   - &drupal_config_path "config/default"
